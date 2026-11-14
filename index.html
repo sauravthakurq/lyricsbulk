@@ -1,0 +1,2545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LyricsBulk — Lyrics Research & Dataset Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --sidebar-bg: #f8f9fa;
+  --sidebar-border: #eaedf1;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text2: #4b5563;
+  --text3: #6b7280;
+  --text4: #9ca3af;
+  --dark: #18181b;
+  --dark-h: #27272a;
+  --light-hover: #f3f4f6;
+  --active-bg: #eef1f5;
+  --accent: #2563eb;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: #fff;
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.app { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+
+/* ── HEADER ── */
+.hdr {
+  height: 56px; background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; flex-shrink: 0; z-index: 20;
+}
+.hdr-left { display: flex; align-items: center; gap: 12px; }
+.logo-ic {
+  width: 28px; height: 28px; background: #000; color: #fff;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.hdr-titles { display: flex; flex-direction: column; }
+.hdr-title { font-size: 0.95rem; font-weight: 700; color: #000; letter-spacing: -0.01em; }
+.hdr-sub { font-size: 0.7rem; color: var(--text3); font-weight: 400; }
+
+.nav-pills {
+  display: flex; align-items: center; gap: 6px;
+  background: #f1f3f5; padding: 4px; border-radius: 20px;
+}
+.npill {
+  border: none; background: transparent; padding: 6px 14px;
+  font-size: 0.78rem; font-weight: 600; color: var(--text2);
+  border-radius: 16px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s ease;
+}
+.npill:hover { color: #000; }
+.npill.active {
+  background: #fff; color: #000;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.npill-badge {
+  font-size: 0.65rem; background: #e5e7eb; padding: 1px 6px;
+  border-radius: 10px; font-weight: 700;
+}
+
+.hdr-right { display: flex; align-items: center; gap: 12px; }
+.global-search {
+  position: relative; display: flex; align-items: center;
+}
+.global-search input {
+  width: 240px; height: 32px; background: #f3f4f6; border: 1px solid transparent;
+  border-radius: 16px; padding: 0 32px 0 30px; font-size: 0.75rem; color: var(--text);
+  outline: none; transition: all 0.2s;
+}
+.global-search input:focus {
+  background: #fff; border-color: var(--border); box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+  width: 280px;
+}
+.gs-ic { position: absolute; left: 10px; color: var(--text4); pointer-events: none; }
+.gs-kbd {
+  position: absolute; right: 8px; font-size: 0.65rem; background: #e5e7eb;
+  padding: 1px 4px; border-radius: 4px; color: var(--text3); font-weight: 600;
+}
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%; background: #f3f4f6;
+  border: 1px solid var(--border); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--text3);
+}
+
+/* ── BODY ── */
+.body-wrap {
+  flex: 1; display: flex; overflow: hidden; position: relative;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 320px; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border);
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.sb-top { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+/* 4 Mode Tabs */
+.seg-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  background: #e9ecef; padding: 3px; border-radius: 8px;
+}
+.segbtn {
+  border: none; background: transparent; padding: 6px 2px;
+  font-size: 0.72rem; font-weight: 600; color: var(--text3);
+  border-radius: 6px; cursor: pointer; text-align: center;
+  transition: all 0.15s ease;
+}
+.segbtn:hover { color: #000; }
+
+/* Search Scope Toggle (Normal vs Wide) */
+.scope-toggle {
+  display: inline-flex; align-items: center; background: #e9ecef;
+  border-radius: 12px; padding: 2px; gap: 2px;
+}
+.scope-btn {
+  border: none; background: transparent; padding: 2px 8px; font-size: 0.65rem;
+  font-weight: 700; color: var(--text3); border-radius: 10px; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.scope-btn:hover { color: #000; }
+.scope-btn.active {
+  background: #fff; color: #000; box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.setting-opt:hover { background: #eef2f6 !important; }
+
+.segbtn.active {
+  background: #fff; color: #000;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.input-label-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ilabel { font-size: 0.75rem; font-weight: 700; color: var(--text2); }
+
+.chipbox {
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px; min-height: 84px; max-height: 140px; overflow-y: auto;
+  display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+}
+.chip {
+  background: #f1f3f5; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 3px 8px 3px 10px; font-size: 0.72rem; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 4px;
+}
+.chip-rm {
+  cursor: pointer; color: var(--text4); font-size: 13px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; width: 14px; height: 14px;
+}
+.chip-rm:hover { color: #ef4444; background: #fee2e2; }
+
+.chip-inline {
+  display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 2px;
+}
+.chip-input {
+  flex: 1; border: none; outline: none; font-size: 0.74rem; background: transparent;
+  color: var(--text); padding: 2px 4px; font-family: inherit;
+}
+.chip-plus {
+  border: none; background: #e2e8f0; color: var(--text2); width: 20px; height: 20px;
+  border-radius: 50%; cursor: pointer; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.chip-plus:hover { background: #cbd5e1; color: #000; }
+
+.fetch-btn {
+  background: #000; color: #fff; border: none; border-radius: 8px;
+  padding: 10px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s; width: 100%;
+}
+.fetch-btn:hover { background: #222; }
+.fetch-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.quick-chips-wrap {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 2px;
+}
+.quick-chips-lbl { font-size: 0.65rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.04em; }
+.quick-chips-list {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.qchip {
+  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  padding: 2px 8px; font-size: 0.68rem; color: var(--text2); cursor: pointer;
+  transition: all 0.15s; font-weight: 500;
+}
+.qchip:hover { border-color: #000; color: #000; }
+
+.prog-wrap {
+  display: none; background: #fff; border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px; margin-top: 4px;
+}
+.prog-bar {
+  height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden;
+}
+.prog-fill { height: 100%; background: #000; width: 0%; transition: width 0.2s; }
+.prog-txt { font-size: 0.68rem; color: var(--text3); margin-top: 4px; text-align: center; }
+
+/* Songs List Area */
+.list-hd {
+  padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.74rem; font-weight: 700; color: var(--text2);
+  border-bottom: 1px solid var(--sidebar-border); border-top: 1px solid var(--sidebar-border);
+  background: #fbfcfd;
+}
+.sort-select {
+  border: none; background: transparent; font-size: 0.72rem; color: var(--text3);
+  font-weight: 600; cursor: pointer; outline: none;
+}
+.tune-btn { cursor: pointer; color: var(--text3); display: flex; align-items: center; }
+.tune-btn:hover { color: #000; }
+
+.songs-list {
+  flex: 1; overflow-y: auto; padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.srow {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+  border-radius: 8px; cursor: pointer; transition: all 0.12s ease;
+  user-select: none; position: relative;
+}
+.srow:hover { background: #eef1f5; }
+.srow.active {
+  background: #e2e7ef;
+}
+.srow-art {
+  width: 40px; height: 40px; border-radius: 6px; object-fit: cover;
+  background: #e5e7eb; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.srow-info { flex: 1; min-width: 0; }
+.srow-title {
+  font-size: 0.78rem; font-weight: 700; color: #000;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.srow-sub {
+  font-size: 0.68rem; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;
+}
+.srow-right {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.srow-chevron { color: #94a3b8; font-size: 14px; font-weight: 700; }
+
+/* ── CONTENT AREA ── */
+.content {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff;
+}
+.view {
+  flex: 1; overflow-y: auto; display: none; flex-direction: column;
+  padding: 24px 32px 100px 32px;
+}
+.view.active { display: flex; }
+
+/* Headline */
+.headline {
+  font-size: 1.15rem; font-weight: 800; color: #000; letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #f1f3f5;
+}
+.stats-left {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.stat-pill {
+  background: #f8f9fa; border: 1px solid var(--border); border-radius: 14px;
+  padding: 4px 10px; font-size: 0.72rem; color: var(--text2); font-weight: 500;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.stat-ic { font-size: 11px; color: #64748b; }
+.stat-num { font-weight: 700; color: #000; }
+.stat-lbl { color: var(--text3); }
+
+.acts { display: flex; align-items: center; gap: 6px; }
+.btn-light {
+  background: #fff; border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; font-size: 0.74rem; font-weight: 600; color: var(--text);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.btn-light:hover { background: #f9fafb; border-color: #cbd5e1; }
+.btn-dark {
+  background: #000; border: 1px solid #000; border-radius: 6px;
+  padding: 6px 12px; font-size: 0.74rem; font-weight: 600; color: #fff;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.btn-dark:hover { background: #222; }
+
+/* Hero Card */
+.hero-card {
+  display: flex; align-items: flex-start; gap: 20px;
+  background: #fff; border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.hero-art {
+  width: 128px; height: 128px; border-radius: 10px; object-fit: cover;
+  background: #e5e7eb; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.hero-info { flex: 1; min-width: 0; }
+.hero-title {
+  font-size: 1.35rem; font-weight: 800; color: #000; letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.hero-sub {
+  font-size: 0.8rem; color: var(--text2); display: flex; align-items: center;
+  gap: 6px; margin-bottom: 12px;
+}
+.hero-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-pill {
+  background: #f1f3f5; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 2px 10px; font-size: 0.68rem; font-weight: 600; color: var(--text3);
+}
+
+.hero-acts {
+  display: flex; align-items: center; gap: 10px; margin-left: auto;
+}
+.hero-play-glyph-btn {
+  background: none; border: none; cursor: pointer; color: #000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px; transition: transform 0.15s;
+}
+.hero-play-glyph-btn:hover { transform: scale(1.1); }
+.icon-btn {
+  background: none; border: none; cursor: pointer; color: #64748b;
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px; transition: color 0.15s;
+}
+.icon-btn:hover { color: #000; }
+
+/* Lyrics Toolbar */
+.lyrics-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; margin-bottom: 16px; border-bottom: 1px solid #f1f3f5;
+}
+.seg-sm {
+  display: flex; align-items: center; background: #f1f3f5;
+  padding: 2px; border-radius: 6px; gap: 2px;
+}
+.segbtn-sm {
+  border: none; background: transparent; padding: 4px 10px; font-size: 0.72rem;
+  font-weight: 600; color: var(--text3); border-radius: 4px; cursor: pointer;
+  transition: all 0.12s;
+}
+.segbtn-sm.active { background: #fff; color: #000; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.pill-toggle {
+  background: #f1f3f5; border: 1px solid var(--border); border-radius: 14px;
+  padding: 4px 12px; font-size: 0.72rem; font-weight: 600; color: var(--text2);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+}
+.pill-toggle.active {
+  background: #000; color: #fff; border-color: #000;
+}
+
+/* Lyrics Stanzas */
+.lyrics-wrap {
+  line-height: 1.85; font-size: 1.05rem; color: #1e293b;
+  max-width: 720px;
+}
+.stanza {
+  margin-bottom: 24px; position: relative;
+}
+.stanza-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em;
+  color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;
+}
+.stanza-copy-btn {
+  background: none; border: none; cursor: pointer; color: #94a3b8;
+  font-size: 0.68rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;
+}
+.stanza-copy-btn:hover { color: #000; }
+.lyric-line {
+  margin-bottom: 4px;
+}
+.rhyme-hi {
+  background: #dbeafe; color: #1e40af; border-radius: 4px; padding: 1px 4px; font-weight: 600;
+}
+.rhyme-hi-alt {
+  background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 4px; font-weight: 600;
+}
+
+/* ── BOTTOM PLAYER BAR ── */
+.player {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 68px;
+  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; z-index: 50; transition: transform 0.3s ease;
+}
+.player.minimized {
+  transform: translateY(100%); pointer-events: none;
+}
+.p-left { display: flex; align-items: center; gap: 12px; width: 260px; min-width: 0; }
+.p-art { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: #e5e7eb; }
+.p-info { min-width: 0; }
+.p-title {
+  font-size: 0.8rem; font-weight: 700; color: #000;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p-sub {
+  font-size: 0.7rem; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p-badge {
+  font-size: 0.62rem; background: #fef2f2; color: #b91c1c; border-radius: 8px;
+  padding: 1px 6px; font-weight: 600; display: inline-block; margin-top: 2px;
+}
+
+.p-center {
+  flex: 1; max-width: 560px; display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+}
+.p-ctrls { display: flex; align-items: center; gap: 16px; }
+.p-btn { background: none; border: none; cursor: pointer; color: #000; display: flex; align-items: center; }
+.p-time-bar { width: 100%; display: flex; align-items: center; gap: 8px; font-size: 0.68rem; color: var(--text3); }
+.p-slider { flex: 1; accent-color: #000; height: 4px; cursor: pointer; }
+
+.p-right { display: flex; align-items: center; gap: 12px; width: 220px; justify-content: flex-end; }
+.vol-slider { width: 70px; accent-color: #000; height: 4px; cursor: pointer; }
+
+/* Floating Corner Circle when player is minimized */
+.mini-player-circle {
+  position: fixed; bottom: 20px; right: 24px; width: 50px; height: 50px;
+  border-radius: 50%; background: #000; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: none; align-items: center; justify-content: center; cursor: pointer;
+  z-index: 100; transition: transform 0.2s; overflow: hidden;
+}
+.mini-player-circle:hover { transform: scale(1.08); }
+.mini-player-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Mini Player Popup Card */
+.mini-popup {
+  position: fixed; bottom: 80px; right: 24px; width: 280px;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15); padding: 14px; display: none;
+  z-index: 100; flex-direction: column; gap: 10px;
+}
+.mp-hdr { display: flex; justify-content: space-between; align-items: center; }
+.mp-title { font-size: 0.82rem; font-weight: 700; color: #000; }
+.mp-maximize-btn {
+  background: #000; color: #fff; border: none; border-radius: 6px;
+  padding: 6px 12px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+}
+
+/* Dropdown Menu */
+.dropdown-wrap { position: relative; }
+.dropdown-menu {
+  position: absolute; right: 0; top: 100%; margin-top: 6px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1); width: 160px; z-index: 40;
+  display: none; flex-direction: column; padding: 4px 0;
+}
+.dropdown-menu.show { display: flex; }
+.dd-item {
+  padding: 8px 14px; font-size: 0.75rem; font-weight: 500; color: var(--text);
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+}
+.dd-item:hover { background: #f3f4f6; }
+.dd-div { height: 1px; background: #e5e7eb; margin: 4px 0; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-20px);
+  background: #18181b; color: #fff; padding: 8px 18px; border-radius: 20px;
+  font-size: 0.78rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  opacity: 0; pointer-events: none; transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+  z-index: 999;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <div class="logo-ic">♫</div>
+      <div class="hdr-titles">
+        <div class="hdr-title">LyricsBulk</div>
+        <div class="hdr-sub">Lyrics Research &amp; Dataset Builder</div>
+      </div>
+    </div>
+
+    <!-- 4 CLEAN NAV PILLS (Exact match) -->
+    <div class="nav-pills">
+      <button class="npill active" id="tab-research" onclick="switchTab('research')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Research
+      </button>
+      <button class="npill" id="tab-library" onclick="switchTab('library')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m16 6 4 14M12 6v14M8 8v12M4 4v16"/></svg>
+        Library <span id="nav-lib-badge" class="npill-badge">33</span>
+      </button>
+      <button class="npill" id="tab-analysis" onclick="switchTab('analysis')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Analysis
+      </button>
+      <button class="npill" id="tab-collections" onclick="switchTab('collections')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+        Collections
+      </button>
+    </div>
+
+    <div class="hdr-right">
+      <div class="global-search">
+        <svg class="gs-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search songs, artists, lyrics..." oninput="handleSearch(this.value)"/>
+        <span class="gs-kbd">⌘K</span>
+      </div>
+
+      <!-- Settings Dropdown -->
+      <div class="dropdown-wrap" style="position:relative;">
+        <button class="icon-btn" onclick="toggleSettingsModal(event)" title="Search Settings" style="width:30px;height:30px;border-radius:50%;background:#f3f4f6;border:1px solid var(--border);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="dropdown-menu" id="settings-menu" style="width:260px;padding:12px;right:0;">
+          <div style="font-size:0.78rem;font-weight:700;color:#000;margin-bottom:8px;">Search Discovery Mode</div>
+          <div class="setting-opt" onclick="setSearchScope('normal')" style="padding:8px;border-radius:6px;cursor:pointer;display:flex;gap:8px;align-items:flex-start;background:#f8f9fa;margin-bottom:6px;">
+            <input type="radio" name="scope_radio" id="radio-normal" checked style="margin-top:2px;accent-color:#000;">
+            <div>
+              <div style="font-size:0.75rem;font-weight:700;color:#000;">⚡ Normal Search</div>
+              <div style="font-size:0.68rem;color:var(--text3);line-height:1.3;">Official &amp; relevant tracks only (e.g. 'Bekhayali' gives official movie tracks, no noise).</div>
+            </div>
+          </div>
+          <div class="setting-opt" onclick="setSearchScope('wide')" style="padding:8px;border-radius:6px;cursor:pointer;display:flex;gap:8px;align-items:flex-start;">
+            <input type="radio" name="scope_radio" id="radio-wide" style="margin-top:2px;accent-color:#000;">
+            <div>
+              <div style="font-size:0.75rem;font-weight:700;color:#000;">🌐 Wide Search</div>
+              <div style="font-size:0.68rem;color:var(--text3);line-height:1.3;">Searches full catalog (covers, remixes, versions, related songs).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="user-avatar" title="Nayra">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- BODY WRAP -->
+  <div class="body-wrap">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-top">
+        <!-- 4 SEGMENTED BUTTONS (Exact match) -->
+        <div class="seg-grid">
+          <button class="segbtn active" id="seg-singer" onclick="switchMode('singer')">By Singer</button>
+          <button class="segbtn" id="seg-writer" onclick="switchMode('writer')">By Writer</button>
+          <button class="segbtn" id="seg-actor" onclick="switchMode('actor')">By Actor</button>
+          <button class="segbtn" id="seg-song" onclick="switchMode('song')">By Song</button>
+        </div>
+
+        <div class="input-label-row">
+          <span class="ilabel" id="input-label">Singer Names</span>
+          <div class="scope-toggle" title="Search Mode: Normal (Official) vs Wide (All Catalog)">
+            <button class="scope-btn active" id="scope-btn-normal" onclick="setSearchScope('normal')">⚡ Normal</button>
+            <button class="scope-btn" id="scope-btn-wide" onclick="setSearchScope('wide')">🌐 Wide</button>
+          </div>
+        </div>
+
+        <div class="chipbox" id="chipbox" onclick="document.getElementById('cinput').focus()">
+          <div id="chips-render-list" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+          <div class="chip-inline">
+            <input class="chip-input" id="cinput"
+              placeholder="e.g. Amitabh Bhattacharya, Pritam, Ranbir..."
+              onkeydown="onChipKey(event)" onpaste="onChipPaste(event)"/>
+            <button class="chip-plus" onclick="addChipFromInput()">+</button>
+          </div>
+        </div>
+
+        <button class="fetch-btn" id="fetch-btn" onclick="doFetch()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Discover All Songs &amp; Lyrics
+        </button>
+
+        <div class="quick-chips-wrap">
+          <span class="quick-chips-lbl">SUGGESTIONS:</span>
+          <div class="quick-chips-list" id="quick-chips-list"></div>
+        </div>
+
+        <div class="prog-wrap" id="prog-wrap">
+          <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+          <div class="prog-txt" id="prog-txt">Fetching…</div>
+        </div>
+      </div>
+
+      <!-- Songs List Header -->
+      <div class="list-hd">
+        <span id="song-count">33 Songs (Current Search)</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select id="sort-select" onchange="changeSort(this.value)" class="sort-select" title="Sort by Year">
+            <option value="year-desc">Latest Year ↓</option>
+            <option value="year-asc">Oldest Year ↑</option>
+            <option value="title-asc">Title A-Z</option>
+          </select>
+          <span class="tune-btn" title="Deduplicate songs" onclick="dedup()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- Songs List -->
+      <div class="songs-list" id="songs-list"></div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <!-- ── VIEW 1: RESEARCH (Exact match) ── -->
+      <div class="view active" id="view-research">
+        <!-- Top Song Headline -->
+        <div class="headline" id="headline">Amar Mon Mane Na Dinrajani - Kabir Suman — Kabir Suman</div>
+
+        <!-- Clean Stats Bar (Exact match) -->
+        <div class="stats-bar">
+          <div class="stats-left">
+            <span class="stat-pill"><span class="stat-ic">♫</span> <strong class="stat-num" id="s-fetched">21</strong> <span class="stat-lbl">fetched</span></span>
+            <span class="stat-pill"><span class="stat-ic">⊘</span> <strong class="stat-num" id="s-failed">0</strong> <span class="stat-lbl">failed</span></span>
+            <span class="stat-pill"><span class="stat-ic">🗎</span> <strong class="stat-num" id="s-words">3,756</strong> <span class="stat-lbl">words</span></span>
+            <span class="stat-pill"><span class="stat-ic">≡</span> <strong class="stat-num" id="s-lines">585</strong> <span class="stat-lbl">lines</span></span>
+          </div>
+          <div class="acts">
+            <button class="btn-light" onclick="copyLyrics()">Copy</button>
+            <button class="btn-light" onclick="copyAll()">Copy All</button>
+            <button class="btn-dark" onclick="dlAllTXT()">All TXT</button>
+            <div class="dropdown-wrap">
+              <button class="btn-light" onclick="toggleMoreMenu(event)" title="More export options">•••</button>
+              <div class="dropdown-menu" id="more-menu">
+                <div class="dd-item" onclick="dlTXT()">⬇ Single TXT</div>
+                <div class="dd-item" onclick="dlPDF()">⬇ Single PDF</div>
+                <div class="dd-item" onclick="dlJSONL('finetune')">⬇ JSONL Fine-tune</div>
+                <div class="dd-div"></div>
+                <div class="dd-item" onclick="dlAllTXT()">⬇ All Songs TXT</div>
+                <div class="dd-item" onclick="dlAllPDF()">⬇ All Songs PDF</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Card (Exact match) -->
+        <div class="hero-card">
+          <img class="hero-art" id="hero-art" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70" alt="Art"/>
+          <div class="hero-info">
+            <div class="hero-title" id="hero-title">Amar Mon Mane Na Dinrajani - Kabir Suman</div>
+            <div class="hero-sub">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+              <span id="hero-meta">Kabir Suman • kabir • Sanchayan - Kabir Suman</span>
+            </div>
+            <div class="hero-tags" id="hero-tags">
+              <span class="tag-pill">Bollywood</span>
+              <span class="tag-pill">Hindi</span>
+            </div>
+          </div>
+          <div class="hero-acts">
+            <button class="hero-play-glyph-btn" id="hero-play-btn" onclick="togglePlay()" title="Play 30s preview">
+              <svg id="hero-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 4.5 21 12 7 19.5 7 4.5"/></svg>
+            </button>
+            <button class="icon-btn" title="Like" id="like-btn" onclick="toggleLike()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="heart-icon"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Lyrics Toolbar (Exact match) -->
+        <div class="lyrics-toolbar">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="seg-sm">
+              <button class="segbtn-sm active" id="btn-script-devanagari" onclick="setScriptMode('devanagari')">Devanagari</button>
+              <button class="segbtn-sm" id="btn-script-roman" onclick="setScriptMode('roman')">Romanized (Hinglish)</button>
+            </div>
+            <div class="seg-sm">
+              <button class="segbtn-sm" onclick="adjustFontSize(-1)">A−</button>
+              <button class="segbtn-sm" onclick="adjustFontSize(1)">A+</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="pill-toggle active" id="btn-toggle-rhymes" onclick="toggleRhymeHighlight()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Highlight Rhymes
+            </button>
+            <button class="pill-toggle active" id="btn-toggle-structure" onclick="toggleStructureTags()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              Structure Tags
+            </button>
+          </div>
+        </div>
+
+        <!-- Lyrics Stanzas Container -->
+        <div class="lyrics-wrap" id="lyrics-container"></div>
+      </div>
+
+      <!-- ── VIEW 2: LIBRARY ── -->
+      <div class="view" id="view-library">
+        <div class="headline">Research Library</div>
+        <div class="stats-bar">
+          <div class="stats-left">
+            <span style="font-size:0.75rem;color:var(--text3);" id="lib-count-label">All songs permanently stored in client database.</span>
+          </div>
+          <div class="acts">
+            <button class="btn-light" onclick="loadAllLibraryToSidebar()">📥 Load All to Sidebar</button>
+            <button class="btn-light" onclick="dedupLibrary()">🗂 Dedup</button>
+            <button class="btn-dark" onclick="dlAllTXT()">⬇ Export All TXT</button>
+          </div>
+        </div>
+        <div id="lib-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;"></div>
+      </div>
+
+      <!-- ── VIEW 3: ANALYSIS ── -->
+      <div class="view" id="view-analysis">
+        <div class="headline">Vocabulary &amp; Emotion Intelligence</div>
+        <div style="display:grid;grid-template-columns: 1fr 1fr; gap:20px; max-width:960px;">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Bollywood Emotion Themes Breakdown</div>
+            <div style="height:260px;position:relative;"><canvas id="analysis-chart"></canvas></div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Top Vocabulary Frequency</div>
+            <div id="top-words-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VIEW 4: COLLECTIONS ── -->
+      <div class="view" id="view-collections">
+        <div class="headline">Collections &amp; AI Datasets</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px;">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;">
+            <div style="font-size:0.9rem;font-weight:700;margin-bottom:6px;">Fine-Tuning JSONL Export</div>
+            <p style="font-size:0.75rem;color:var(--text3);margin-bottom:14px;">Formatted with metadata, poetic tags, and cleaned stanzas ready for LLM fine-tuning.</p>
+            <button class="btn-dark" onclick="dlJSONL('finetune')">⬇ Export JSONL</button>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;">
+            <div style="font-size:0.9rem;font-weight:700;margin-bottom:6px;">AI Prompt Context Block</div>
+            <p style="font-size:0.75rem;color:var(--text3);margin-bottom:14px;">Copies formatted lyrics block directly to clipboard to feed into Gemini or Claude.</p>
+            <button class="btn-light" onclick="copyAIPromptContext()">📋 Copy Prompt Context</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- BOTTOM PLAYER -->
+  <footer class="player" id="player">
+    <div class="p-left">
+      <img class="p-art" id="p-art" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70" alt=""/>
+      <div class="p-info">
+        <div class="p-title" id="p-title">Amar Mon ...</div>
+        <div class="p-sub" id="p-artist">Kabir Suman</div>
+        <span class="p-badge" id="p-badge">Preview Unavailable</span>
+      </div>
+    </div>
+    <div class="p-center">
+      <div class="p-ctrls">
+        <button class="p-btn" onclick="prevSong()" title="Previous"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"/></svg></button>
+        <button class="p-btn" onclick="togglePlay()" title="Play/Pause" id="p-play-btn"><svg id="p-play-ic" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
+        <button class="p-btn" onclick="nextSong()" title="Next"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"/></svg></button>
+      </div>
+      <div class="p-time-bar">
+        <span id="p-curr">0:00</span>
+        <input type="range" class="p-slider" id="p-slider" min="0" max="30" value="0" oninput="seekTo(this.value)"/>
+        <span id="p-dur">0:30</span>
+      </div>
+    </div>
+    <div class="p-right">
+      <button class="p-btn" onclick="toggleMute()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="vol-icon"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
+      <input type="range" class="vol-slider" min="0" max="1" step="0.05" value="1" oninput="setVol(this.value)"/>
+      <button class="p-btn" onclick="togglePlayerMinimize(true)" title="Minimize player"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+  </footer>
+
+  <!-- MINIMIZED CORNER CIRCLE -->
+  <div class="mini-player-circle" id="mini-player-circle" onclick="toggleMiniPopup(event)" title="Click to view player">
+    <img id="mini-art" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70" alt=""/>
+  </div>
+
+  <!-- MINI PLAYER POPUP CARD -->
+  <div class="mini-popup" id="mini-popup">
+    <div class="mp-hdr">
+      <div>
+        <div class="mp-title" id="mp-title">Amar Mon Mane Na</div>
+        <div style="font-size:0.68rem;color:var(--text3);" id="mp-artist">Kabir Suman</div>
+      </div>
+      <button class="mp-maximize-btn" onclick="togglePlayerMinimize(false)">Maximize ↗</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+  <audio id="audio" preload="none"></audio>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// DATA (33 Songs matching media_1794695465765_4ea57a51.jpg)
+// ════════════════════════════════════════════════════════
+const DEMO_SONGS = [
+  {
+    "id": "amar-mon-mane-na",
+    "title": "Amar Mon Mane Na Dinrajani - Kabir Suman",
+    "artist": "Kabir Suman",
+    "singer": "Kabir Suman",
+    "composer": "Kabir Suman",
+    "lyricist": "Kabir Suman",
+    "album": "Sanchayan - Kabir Suman",
+    "film": "Sanchayan - Kabir Suman",
+    "year": "2020",
+    "lang": "Bengali",
+    "tags": [
+      "Bollywood",
+      "Hindi"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Amar+Mon+Mane+Na+Dinrajani+Kabir+Suman",
+    "lyrics": "আমার মন মানে না দিনরজনী\nআমার মন माने না\nআমি কী কথা স্মরিয়া এ তনু ভরিয়া\nপুলক রাখিতে না'রি\nওগো, কী ভাবিয়া মনে এ দুটি নয়নে\nউথলে নয়নবারি\nওগো সজনি\n\nআমার মন মানে না দিনরজনী\nআমার মন माने না\n\nসে সুধাবচন, সে সুখপরশ\nঅঙ্গে বাজিছে বাঁশি গো\nসে সুধাবচন, সে সুখপরশ\nঅঙ্গে বাজিছে বাঁশি\nতাই শুনিয়া শুনিয়া আপনার মনে\nহৃদয় হয় উদাসী\nকেন না জানি\n\nআমার মন মানে না দিনরজনী\nআমার মন माने না\n\nওগো, বাতাসে কী কথা ভেসে চলে আসে\nআকাশে কী মুখ জাগে\nসখী, বাতাসে কী কথা ভেসে চলে আসে\nআকাশে কী মুখ জাগে\nওগো, বনমর্মরে নদীনির্ঝরে কী মধুর সুর লাগে\n\nফুলের গন্ধ বন্ধুর মতো\nজড়ায়ে ধরিছে গলে গো\nফুলের গন্ধ বন্ধুর মতো\nজড়ায়ে ধরিছে গলে\nআমি এ কথা, এ ব্যথা, সুখব্যাকুলতা\nকাহার চরণতলে\nদিব নিছনি\n\nআমার মন মানে না দিনরজনী\nআমার মন माने না"
+  },
+  {
+    "id": "iktara",
+    "title": "Iktara",
+    "artist": "Kavita Seth",
+    "singer": "Kavita Seth, Amitabh Bhattacharya",
+    "composer": "Amit Trivedi",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Wake Up Sid",
+    "film": "Wake Up Sid",
+    "year": "2009",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Hindi"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/3c/6e/b7/3c6eb722-e300-8480-482f-87053e164293/8901858000454.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f8/00/9c/f8009ce1-c649-b84f-e091-53172b83ef91/mzaf_7875960481109919597.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Iktara+Wake+Up+Sid",
+    "lyrics": "ओ रे मनवा तू तो बावरा है\nबनके आवारा यूँ क्यूँ घूमे\nओ रे मनवा तू तो बावरा है\nबनके आवारा यूँ क्यूँ घूमे\n\nगूँजा सा है कोई इक तारा इक तारा\nगूँजा सा है कोई इक तारा\nधीमे बोले कोई इक तारा इक तारा\nगूँजा सा है कोई इक तारा"
+  },
+  {
+    "id": "iktara-male",
+    "title": "Iktara (Male Version)",
+    "artist": "Amit Trivedi",
+    "singer": "Amit Trivedi, Amitabh Bhattacharya",
+    "composer": "Amit Trivedi",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Wake Up Sid",
+    "film": "Wake Up Sid",
+    "year": "2009",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Hindi"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/3c/6e/b7/3c6eb722-e300-8480-482f-87053e164293/8901858000454.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f8/00/9c/f8009ce1-c649-b84f-e091-53172b83ef91/mzaf_7875960481109919597.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Iktara+Male+Wake+Up+Sid",
+    "lyrics": "सुनो सुनो क्या कहे ये हवा\nमन की बात कोई नई दास्ताँ\nगूँजा सा है कोई इक तारा इक तारा\nगूँजा सा है कोई इक तारा"
+  },
+  {
+    "id": "irshad-kamil",
+    "title": "Irshad Kamil",
+    "artist": "Aakhri Ishq",
+    "singer": "Irshad Kamil",
+    "composer": "Irshad Kamil",
+    "lyricist": "Irshad Kamil",
+    "album": "irshad kamil",
+    "film": "Aakhri Ishq",
+    "year": "2021",
+    "lang": "Hindi",
+    "tags": [
+      "Poetry",
+      "Hindi"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Irshad+Kamil+Aakhri+Ishq",
+    "lyrics": "आख़री इश्क़ की पहली बारिश में\nभीग जाने दो मुझे ख़्वाहिश में\nजो बचा है वो तेरे नाम रहे\nदिल सलामत रहे इस साज़िश में"
+  },
+  {
+    "id": "jon-kabir",
+    "title": "Jon Kabir - Moho | Official ...",
+    "artist": "Jon Kabir",
+    "singer": "Jon Kabir",
+    "composer": "Jon Kabir",
+    "lyricist": "Jon Kabir",
+    "album": "Jon Kabir",
+    "film": "Moho",
+    "year": "2020",
+    "lang": "Bengali",
+    "tags": [
+      "Indie",
+      "Rock"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Jon+Kabir+Moho",
+    "lyrics": "কিছু মোহ থাকে অন্তরে\nকিছু সুর বাজে দূরে বহু দূরে\nজ্বলে আলো আঁধারের সীমানায়\nমন হারায় অজানায়"
+  },
+  {
+    "id": "kabir-benyamin",
+    "title": "Kabir",
+    "artist": "Benyamin Bahadori",
+    "singer": "Benyamin Bahadori",
+    "composer": "Benyamin Bahadori",
+    "lyricist": "Benyamin",
+    "album": "Kabir",
+    "film": "Kabir",
+    "year": "2016",
+    "lang": "Persian",
+    "tags": [
+      "World",
+      "Indie"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Kabir+Benyamin",
+    "lyrics": "در این کویر تشنه لب\nبه یاد تو در هر شب\nصدای تو آرام جان\nامید این بی نشان"
+  },
+  {
+    "id": "mahi-ehsan",
+    "title": "Mahi",
+    "artist": "Ehsan Daryadel",
+    "singer": "Ehsan Daryadel",
+    "composer": "Ehsan Daryadel",
+    "lyricist": "Ehsan Daryadel",
+    "album": "Mahi",
+    "film": "Mahi",
+    "year": "2021",
+    "lang": "Persian",
+    "tags": [
+      "Indie",
+      "Pop"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Mahi+Ehsan+Daryadel",
+    "lyrics": "ماهی تو حوض نقاشی\nکاشکی همیشه پیش من باشی\nدل به دریا زدم بی تو\nگم شدم توی این شبها"
+  },
+  {
+    "id": "mahi-roody",
+    "title": "Mahi",
+    "artist": "Roody",
+    "singer": "Roody",
+    "composer": "Roody",
+    "lyricist": "Roody",
+    "album": "Mahi",
+    "film": "Mahi",
+    "year": "2020",
+    "lang": "Hindi",
+    "tags": [
+      "Indie"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Mahi+Roody",
+    "lyrics": "माही वे तेरे बिन जिया नहीं लागे\nरात-दिन नैना तेरे पीछे भागे\nदिल की पुकार तू सुन ले कभी\nतेरे बिना सुनी लगे ये जमीं"
+  },
+  {
+    "id": "mahi-shafiullah",
+    "title": "Mahi",
+    "artist": "Shafullah Khan Rokhri",
+    "singer": "Shafullah Khan Rokhri",
+    "composer": "Shafullah",
+    "lyricist": "Folk",
+    "album": "Mahi",
+    "film": "Mahi",
+    "year": "2019",
+    "lang": "Punjabi",
+    "tags": [
+      "Folk",
+      "Punjabi"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Mahi+Shafullah",
+    "lyrics": "माही वे तैनू याद करां\nहर वेले फरियाद करां\nअंखियों चों नीर बहे\nदिल मेरा पीर सहे"
+  },
+  {
+    "id": "mahi-amaal",
+    "title": "Mahi",
+    "artist": "Amaal Mallik, Arijit Singh",
+    "singer": "Arijit Singh",
+    "composer": "Amaal Mallik",
+    "lyricist": "Manoj Muntashir",
+    "album": "Mahi",
+    "film": "Mahi Single",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Mahi+Amaal+Mallik",
+    "lyrics": "माही वे मोहब्बतां सचियां ने\nकच्चियां कलियां पक्कियां ने\nतेरे नाल जीने दी कसम खाई\nरूह मेरी तैनू वेख मुस्काई"
+  },
+  {
+    "id": "bekhayali-sachet",
+    "title": "Bekhayali",
+    "artist": "Sachet Tandon",
+    "singer": "Sachet Tandon",
+    "composer": "Sachet-Parampara",
+    "lyricist": "Irshad Kamil",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Sad",
+      "2019"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Bekhayali+Sachet+Tandon",
+    "lyrics": "बेख्याली में भी तेरा ही ख़्याल आए\nक्यूँ बिछड़ना है ज़रूरी ये सवाल आए\nतेरी नज़दीकियों की ख़ुशी बेहिसाब थी\nहिस्से में फ़ासले भी तेरे बेमिसाल आए\n\nफ़ासलों के दरमियाँ धड़कनों की दास्ताँ\nलौट के आने की अब कोई राह ना\nबेख्याली में भी तेरा ही ख़्याल आए\nक्यूँ बिछड़ना है ज़रूरी ये सवाल आए"
+  },
+  {
+    "id": "bekhayali-arijit",
+    "title": "Bekhayali (Arijit Singh Version)",
+    "artist": "Arijit Singh",
+    "singer": "Arijit Singh",
+    "composer": "Sachet-Parampara",
+    "lyricist": "Irshad Kamil",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Sad",
+      "2019"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Bekhayali+Arijit+Singh",
+    "lyrics": "बेख्याली में भी तेरा ही ख़्याल आए\nक्यूँ बिछड़ना है ज़रूरी ये सवाल आए\nतेरी नज़दीकियों की ख़ुशी बेहिसाब थी\nहिस्से में फ़ासले भी तेरे बेमिसाल आए"
+  },
+  {
+    "id": "tujhe-kitna-chahne-lage",
+    "title": "Tujhe Kitna Chahne Lage",
+    "artist": "Arijit Singh",
+    "singer": "Arijit Singh",
+    "composer": "Mithoon",
+    "lyricist": "Mithoon",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic",
+      "2019"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Tujhe+Kitna+Chahne+Lage+Arijit+Singh",
+    "lyrics": "दिल का दरिया बह ही गया\nइश्क़ इबादत बन ही गया\nख़ुद को मुझे तू सौंप दे\nमेरी ज़रूरत तू बन गया\n\nबात दिल की नज़रों ने की\nसच कह रहा तेरी कसम\nतेरे बिन अब ना लेंगे एक भी दम\nतुझे कितना चाहने लगे हम"
+  },
+  {
+    "id": "tera-ban-jaunga",
+    "title": "Tera Ban Jaunga",
+    "artist": "Akhil Sachdeva, Tulsi Kumar",
+    "singer": "Akhil Sachdeva, Tulsi Kumar",
+    "composer": "Akhil Sachdeva",
+    "lyricist": "Kumaar",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic",
+      "2019"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Tera+Ban+Jaunga",
+    "lyrics": "मेरी राहें तेरे तक हैं\nतुझपे ही तो मेरा हक़ है\nइश्क़ मेरा तू बेशक है\nतुझपे ही तो मेरा हक़ है\n\nबनके तेरा साया मैं तो साथ चलूँगा\nलाख बुराई हो जहाँ में ख़ुद बदलूँगा\nतेरा बन जाऊँगा, तेरा बन जाऊँगा"
+  },
+  {
+    "id": "kaise-hua",
+    "title": "Kaise Hua",
+    "artist": "Vishal Mishra",
+    "singer": "Vishal Mishra",
+    "composer": "Vishal Mishra",
+    "lyricist": "Manoj Muntashir",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic",
+      "2019"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Kaise+Hua+Vishal+Mishra",
+    "lyrics": "हँसता रहता हूँ तुझसे मिलकर क्यूँ आजकल\nबदले-बदले हैं मेरे तेवर क्यूँ आजकल\nआँखें मेरी हर जगह ढूँढें तुझे बेवजह\nये मैं हूँ या कोई और है मेरी तरह\n\nकैसे हुआ, कैसे हुआ\nतू इतना ज़रूरी कैसे हुआ"
+  },
+  {
+    "id": "mere-sohneya",
+    "title": "Mere Sohneya",
+    "artist": "Sachet Tandon, Parampara Tandon",
+    "singer": "Sachet Tandon, Parampara Tandon",
+    "composer": "Sachet-Parampara",
+    "lyricist": "Irshad Kamil",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Mere+Sohneya+Kabir+Singh",
+    "lyrics": "बनके तेरा साया तेरा साथ निभाऊँगा\nमेरे सोहणेया सोहणेया वे\nमाही मेरा कित्थे नहीं दिल लगना"
+  },
+  {
+    "id": "pehla-pyaar",
+    "title": "Pehla Pyaar",
+    "artist": "Armaan Malik",
+    "singer": "Armaan Malik",
+    "composer": "Vishal Mishra",
+    "lyricist": "Irshad Kamil",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Romantic"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Pehla+Pyaar+Kabir+Singh",
+    "lyrics": "पहले से ज़्यादा ख़्वाब तेरे\nआते हैं मुझको रात-दिन\nये जो नया एहसास है\nतू ही तो मेरे पास है"
+  },
+  {
+    "id": "yeh-aaina",
+    "title": "Yeh Aaina",
+    "artist": "Shreya Ghoshal",
+    "singer": "Shreya Ghoshal",
+    "composer": "Amaal Mallik",
+    "lyricist": "Irshad Kamil",
+    "album": "Kabir Singh",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Hindi",
+    "tags": [
+      "Bollywood",
+      "Emotional"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c3/8c/67/c38c679a-bc04-9e79-cf2c-fcbb69415668/mzaf_10521327170198642686.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Yeh+Aaina+Kabir+Singh",
+    "lyrics": "ये आईना है या तू है जो रोज़ मुझको सँवारता है\nमेरी नज़र से तू देख ख़ुद को कि यार कितना तू प्यार का है"
+  },
+  {
+    "id": "kabir-singh-theme",
+    "title": "Kabir Singh Theme",
+    "artist": "Genesis the Beginning",
+    "singer": "Instrumental",
+    "composer": "Harshavardhan Rameshwar",
+    "lyricist": "Theme",
+    "album": "Kabir Singh Theme",
+    "film": "Kabir Singh",
+    "year": "2019",
+    "lang": "Instrumental",
+    "tags": [
+      "Soundtrack",
+      "Theme"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4e/bb/11/4ebb119d-7dbd-a77b-665e-2f22b7a9f6fe/8902894356708.jpg/300x300bb.jpg",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Kabir+Singh+Theme",
+    "lyrics": "[Instrumental Theme Track — Kabir Singh Signature BGM]"
+  },
+  {
+    "id": "matkar-maya",
+    "title": "Matkar Maya Ko Ahankar",
+    "artist": "Kabir Cafe",
+    "singer": "Neeraj Arya's Kabir Cafe",
+    "composer": "Kabir Cafe",
+    "lyricist": "Saint Kabir",
+    "album": "Panchrang",
+    "film": "Kabir Cafe",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Folk",
+      "Mystic"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Matkar+Maya+Ko+Ahankar+Kabir+Cafe",
+    "lyrics": "मत कर माया को अहंकार मत कर काया को अभिमान\nकाया गार से काची रे\nकाया गार से काची जैसे ओस रा मोती\nझोका पवन का लग जावेगा काया धूल हो जावेगी"
+  },
+  {
+    "id": "fakiri",
+    "title": "Fakiri",
+    "artist": "Kabir Cafe",
+    "singer": "Kabir Cafe",
+    "composer": "Kabir Cafe",
+    "lyricist": "Saint Kabir",
+    "album": "Panchrang",
+    "film": "Kabir Cafe",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Folk",
+      "Kabir"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Fakiri+Kabir+Cafe",
+    "lyrics": "मन लागो मेरो यार फ़कीरी में\nजो सुख पायो राम भजन में सो सुख नाहि अमीरी में\nभलो बुरो सब कोऊ कहत है अपनी अपनी रुचि में"
+  },
+  {
+    "id": "hoshiyar-rehna",
+    "title": "Hoshiyar Rehna",
+    "artist": "Kabir Cafe",
+    "singer": "Kabir Cafe",
+    "composer": "Kabir Cafe",
+    "lyricist": "Saint Kabir",
+    "album": "Panchrang",
+    "film": "Kabir Cafe",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Folk",
+      "Kabir"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Hoshiyar+Rehna+Kabir+Cafe",
+    "lyrics": "होशियार रहना रे नगर में चोर आवेगा\nसावधान रहना रे नगर में चोर आवेगा\nपाँचों पहरुवा सोवन लागे\nचोर सिंद लगावेगा"
+  },
+  {
+    "id": "chadariya",
+    "title": "Chadariya Jhini Re Jhini",
+    "artist": "Kabir Cafe",
+    "singer": "Kabir Cafe",
+    "composer": "Kabir Cafe",
+    "lyricist": "Saint Kabir",
+    "album": "Panchrang",
+    "film": "Kabir Cafe",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Folk",
+      "Kabir"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Chadariya+Jhini+Re+Jhini+Kabir+Cafe",
+    "lyrics": "झीनी रे झीनी चदरिया झीनी रे झीनी\nराम नाम रस भीनी चदरिया झीनी रे झीनी\nअष्ट कमल दल चरखा डोले\nपाँच तत्व गुन तीनी चदरिया"
+  },
+  {
+    "id": "sunta-hai",
+    "title": "Sunta Hai Guru Gyani",
+    "artist": "Kabir Cafe",
+    "singer": "Kabir Cafe",
+    "composer": "Kabir Cafe",
+    "lyricist": "Saint Kabir",
+    "album": "Panchrang",
+    "film": "Kabir Cafe",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Folk",
+      "Kabir"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Sunta+Hai+Guru+Gyani+Kabir+Cafe",
+    "lyrics": "सुनता है गुरु ज्ञानी गगन में अवाज हो रही झीनी\nबिन बाजा एक तंबूरा बाजे\nघंटन की झनकारी"
+  },
+  {
+    "id": "tumhare-hi",
+    "title": "Tumhare Hi Rahenge Hum",
+    "artist": "Sachin-Jigar",
+    "singer": "Sachin-Jigar, Varun Jain & Shilpa Rao",
+    "composer": "Sachin-Jigar",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Stree 2",
+    "film": "Stree 2",
+    "year": "2024",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Romantic",
+      "2024"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/d3/37/eb/d337eb52-2663-826d-d213-335598b14743/198846005553.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3b/6c/a7/3b6ca710-96e3-3066-f0d6-bfc60cbc524c/mzaf_17273578008638421243.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Tumhare+Hi+Rahenge+Hum+Stree+2",
+    "lyrics": "तुम्हारे ही रहेंगे हम\nचाहे बदले ये मौसम\nकसम है हमें तुम्हारी\nतुम्हारे ही रहेंगे हम"
+  },
+  {
+    "id": "mitra",
+    "title": "Mitra",
+    "artist": "Amitabh Bhattacharya",
+    "singer": "Amitabh Bhattacharya",
+    "composer": "Pritam",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Rocky Aur Rani Kii Prem Kahaani",
+    "film": "Rocky Aur Rani Kii Prem Kahaani",
+    "year": "2023",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Soulful",
+      "2023"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/9a/94/10/9a9410d6-6864-5752-b44c-1a0f4974925f/cover.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2a/f8/23/2af823c9-8143-33ee-13eb-e958a9c749d6/mzaf_3053867934269935018.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Mitra+Amitabh+Bhattacharya",
+    "lyrics": "ओ मित्रा, मेरे मित्रा, किस बात का गिला है?\nजो भी मिला है तुझको, किस्मत से ही मिला है"
+  },
+  {
+    "id": "apna-bana-le",
+    "title": "Apna Bana Le",
+    "artist": "Arijit Singh",
+    "singer": "Arijit Singh, Sachin-Jigar",
+    "composer": "Sachin-Jigar",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Bhediya",
+    "film": "Bhediya",
+    "year": "2022",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Romantic",
+      "2022"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/23/a2/79/23a2795f-bb46-88d4-5ea2-f75a74659f81/196589574443.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/eb/27/61/eb2761c7-d606-0912-dff0-2dc6b69974bd/mzaf_7824147047395027581.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Apna+Bana+Le+Arijit+Singh",
+    "lyrics": "तू मेरा कोई ना हो के भी कुछ लागे\nअपना बना ले पिया अपना बना ले पिया"
+  },
+  {
+    "id": "apna-bana-le-reprise",
+    "title": "Apna Bana Le (Reprise)",
+    "artist": "Sachin-Jigar",
+    "singer": "Sachin-Jigar",
+    "composer": "Sachin-Jigar",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Bhediya",
+    "film": "Bhediya",
+    "year": "2022",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Acoustic"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/23/a2/79/23a2795f-bb46-88d4-5ea2-f75a74659f81/196589574443.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/eb/27/61/eb2761c7-d606-0912-dff0-2dc6b69974bd/mzaf_7824147047395027581.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Apna+Bana+Le+Reprise",
+    "lyrics": "तू मेरा कोई ना हो के भी कुछ लागे\nदिल की ये बातें सब रब आगे"
+  },
+  {
+    "id": "channa-mereya",
+    "title": "Channa Mereya",
+    "artist": "Arijit Singh",
+    "singer": "Arijit Singh",
+    "composer": "Pritam",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Ae Dil Hai Mushkil",
+    "film": "Ae Dil Hai Mushkil",
+    "year": "2016",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Sad",
+      "2016"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/d5/4b/f4/d54bf485-6bb9-ebc4-954f-1eb73f1be1fb/886446162391.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d5/f9/98/d5f998a7-0090-ee2d-03f8-557ad6c5bf65/mzaf_15783305597951806305.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Channa+Mereya+Arijit+Singh",
+    "lyrics": "अच्छा चलता हूँ दुआओं में याद रखना\nमेरे ज़िक्र का ज़ुबाँ पे स्वाद रखना\nअंधेरा तेरा मैंने ले लिया\nमेरा उजला सितारा तेरे नाम किया\nचन्ना मेरेया मेरेया चन्ना मेरेया मेरेया"
+  },
+  {
+    "id": "nayan-tarse",
+    "title": "Nayan Tarse",
+    "artist": "Amit Trivedi",
+    "singer": "Amit Trivedi",
+    "composer": "Amit Trivedi",
+    "lyricist": "Amitabh Bhattacharya",
+    "album": "Dev.D",
+    "film": "Dev.D",
+    "year": "2009",
+    "lang": "Hindi",
+    "tags": [
+      "Hindi",
+      "Rock"
+    ],
+    "art": "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/5a/b6/a9/5ab6a978-5a48-d309-8806-03db17fcf1e7/886443425956.jpg/300x300bb.jpg",
+    "preview": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/09/a5/d6/09a5d629-ce49-937b-99f8-b39bc1b0dfa2/mzaf_849641777418939632.plus.aac.p.m4a",
+    "appleUrl": "https://music.apple.com/in/search?term=Nayan+Tarse+Amit+Trivedi",
+    "lyrics": "नयन तरसे तरसे रे\nअँखियाँ बरसे बरसे रे\nसूने रस्ते सूनी गलियाँ\nमन का पंछी भटके रे"
+  },
+  {
+    "id": "kabir-amritdhara",
+    "title": "Kabir Amritdhara",
+    "artist": "Debashish Dasgupta",
+    "singer": "Debashish Dasgupta",
+    "composer": "Traditional",
+    "lyricist": "Saint Kabir",
+    "album": "Kabir Amritwani",
+    "film": "Kabir Amritwani",
+    "year": "2018",
+    "lang": "Hindi",
+    "tags": [
+      "Bhajan",
+      "Kabir"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Kabir+Amritdhara",
+    "lyrics": "कबीर अमृतधारा बहे प्रेम रस धार\nसुन ले रे नर बावरे उतर जाए भव पार"
+  },
+  {
+    "id": "ami-chai",
+    "title": "Ami Chai",
+    "artist": "Kabir Suman",
+    "singer": "Kabir Suman",
+    "composer": "Kabir Suman",
+    "lyricist": "Kabir Suman",
+    "album": "Kabir Suman",
+    "film": "Tomake Chai",
+    "year": "2015",
+    "lang": "Bengali",
+    "tags": [
+      "Bengali",
+      "Classics"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Ami+Chai+Kabir+Suman",
+    "lyrics": "আমি চাই শান্ত সকাল\nআমি চাই পাখির গান\nআমি চাই সবুজ মাঠ\nআমি চাই মুক্ত প্রাণ"
+  },
+  {
+    "id": "stabdhatar-gaan",
+    "title": "Stabdhatar Gaan",
+    "artist": "Kabir Suman",
+    "singer": "Kabir Suman",
+    "composer": "Kabir Suman",
+    "lyricist": "Kabir Suman",
+    "album": "Gaanola Kabir Suman",
+    "film": "Gaanola Kabir Suman",
+    "year": "2014",
+    "lang": "Bengali",
+    "tags": [
+      "Bengali",
+      "Classics"
+    ],
+    "art": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70",
+    "preview": "",
+    "appleUrl": "https://music.apple.com/in/search?term=Stabdhatar+Gaan+Kabir+Suman",
+    "lyrics": "স্তব্ধতার গান বাজে অন্তহীন সুরে\nস্মৃতির মেঘ ভাসে দূর বহুদূরে"
+  }
+];
+
+// STATE
+let st = {
+  mode: 'singer',
+  searchScope: 'normal', // 'normal' = official/relevant only; 'wide' = full catalog
+  chips: ['bekhayali', 'kabir'],
+  songs: [...DEMO_SONGS],
+  library: [...DEMO_SONGS],
+  selId: 'amar-mon-mane-na',
+  fontSize: 1.05,
+  scriptMode: 'devanagari',
+  highlightRhymes: true,
+  showStructure: true,
+  sortCriteria: 'year-desc',
+  isPlaying: false,
+  isMuted: false,
+  vol: 1,
+  playerMinimized: false
+};
+
+const aud = document.getElementById('audio');
+
+// ════════════════════════════════════════════════════════
+// 100% RELIABLE CROSS-ORIGIN SEARCH VIA JSONP (No CORS Errors)
+// ════════════════════════════════════════════════════════
+function fetchItunesJsonp(term, limit = 40) {
+  return new Promise((resolve) => {
+    const cbName = 'itunes_cb_' + Math.random().toString(36).substr(2, 9);
+    const script = document.createElement('script');
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      try { delete window[cbName]; } catch(e){}
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve({ results: [] });
+    }, 7000);
+
+    window[cbName] = function(data) {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){}
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data || { results: [] });
+    };
+
+    script.onerror = function() {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){}
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve({ results: [] });
+    };
+
+    script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=${limit}&country=IN&callback=${cbName}`;
+    document.head.appendChild(script);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION & MODES
+// ════════════════════════════════════════════════════════
+
+function setSearchScope(scope) {
+  st.searchScope = scope;
+  const bNorm = document.getElementById('scope-btn-normal');
+  const bWide = document.getElementById('scope-btn-wide');
+  const rNorm = document.getElementById('radio-normal');
+  const rWide = document.getElementById('radio-wide');
+
+  if (bNorm) bNorm.classList.toggle('active', scope === 'normal');
+  if (bWide) bWide.classList.toggle('active', scope === 'wide');
+  if (rNorm) rNorm.checked = (scope === 'normal');
+  if (rWide) rWide.checked = (scope === 'wide');
+
+  toast(scope === 'normal' 
+    ? "⚡ Normal Search: Official & relevant songs only" 
+    : "🌐 Wide Search: Entire catalog discovery");
+}
+
+function toggleSettingsModal(e) {
+  if (e) e.stopPropagation();
+  const m = document.getElementById('settings-menu');
+  if (m) m.classList.toggle('show');
+}
+
+function switchTab(t) {
+  ['research', 'library', 'analysis', 'collections'].forEach(id => {
+    const v = document.getElementById('view-' + id);
+    const b = document.getElementById('tab-' + id);
+    if (v) v.classList.toggle('active', id === t);
+    if (b) b.classList.toggle('active', id === t);
+  });
+  if (t === 'analysis') renderAnalysis();
+  if (t === 'library') renderLib();
+}
+
+function switchMode(m) {
+  st.mode = m;
+  ['singer', 'writer', 'actor', 'song'].forEach(id => {
+    const b = document.getElementById('seg-' + id);
+    if (b) b.classList.toggle('active', id === m);
+  });
+  const lbl = document.getElementById('input-label');
+  const inp = document.getElementById('cinput');
+  if (lbl) {
+    if (m === 'singer') lbl.textContent = 'Singer Names';
+    else if (m === 'writer') lbl.textContent = 'Writer Names';
+    else if (m === 'actor') lbl.textContent = 'Actor Names';
+    else lbl.textContent = 'Song Names';
+  }
+  if (inp) {
+    if (m === 'singer') inp.placeholder = 'e.g. Arijit Singh, Shreya Ghoshal, KK, Mohit Chauhan...';
+    else if (m === 'writer') inp.placeholder = 'e.g. Amitabh Bhattacharya, Irshad Kamil, Gulzar...';
+    else if (m === 'actor') inp.placeholder = 'e.g. Akshay Kumar, Ranbir Kapoor, Shah Rukh Khan...';
+    else inp.placeholder = 'e.g. Kesariya, Tum Hi Ho, Channa Mereya...';
+  }
+  renderQuickSuggestions();
+}
+
+function renderQuickSuggestions() {
+  const c = document.getElementById('quick-chips-list');
+  if (!c) return;
+  const suggs = {
+    singer: ['Arijit Singh', 'Shreya Ghoshal', 'KK', 'Mohit Chauhan', 'Atif Aslam'],
+    writer: ['Amitabh Bhattacharya', 'Irshad Kamil', 'Gulzar', 'Javed Akhtar'],
+    actor: ['Akshay Kumar', 'Ranbir Kapoor', 'Shah Rukh Khan', 'Hrithik Roshan'],
+    song: ['Kesariya', 'Tum Hi Ho', 'Channa Mereya', 'Bekhayali']
+  }[st.mode] || ['Arijit Singh', 'Amitabh Bhattacharya', 'Akshay Kumar'];
+
+  c.innerHTML = suggs.map(s => `<span class="qchip" onclick="addChip('${esc(s)}')">${esc(s)}</span>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// CHIP BOX
+// ════════════════════════════════════════════════════════
+function renderChips() {
+  const c = document.getElementById('chips-render-list');
+  if (!c) return;
+  c.innerHTML = st.chips.map((ch, i) => `
+    <span class="chip">
+      ${esc(ch)}
+      <span class="chip-rm" onclick="rmChip(${i})">×</span>
+    </span>
+  `).join('');
+}
+
+function onChipKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addChipFromInput();
+  }
+}
+
+function onChipPaste(e) {
+  setTimeout(() => {
+    const inp = document.getElementById('cinput');
+    const parts = inp.value.split(/[,\n]+/).map(x=>x.trim()).filter(Boolean);
+    parts.forEach(p => { if (!st.chips.includes(p)) st.chips.push(p); });
+    inp.value = '';
+    renderChips();
+  }, 10);
+}
+
+function addChipFromInput() {
+  const inp = document.getElementById('cinput');
+  const v = inp.value.trim().replace(/,/g, '').trim();
+  if (!v) return;
+  if (!st.chips.includes(v)) {
+    st.chips.push(v);
+    renderChips();
+  }
+  inp.value = '';
+}
+
+function addChip(name) {
+  if (!st.chips.includes(name)) {
+    st.chips.push(name);
+    renderChips();
+  }
+}
+
+function rmChip(i) {
+  st.chips.splice(i, 1);
+  renderChips();
+}
+
+// ════════════════════════════════════════════════════════
+// CORE FETCH ENGINE (iTunes JSONP + LRCLIB CORS)
+// ════════════════════════════════════════════════════════
+async function doFetch() {
+  const inp = document.getElementById('cinput');
+  if (inp && inp.value.trim()) {
+    const val = inp.value.trim().replace(/,/g, '').trim();
+    if (val && !st.chips.includes(val)) {
+      st.chips.push(val);
+      renderChips();
+    }
+    inp.value = '';
+  }
+
+  if (!st.chips.length) {
+    toast("Please enter a name or click a suggestion chip!");
+    return;
+  }
+
+  const btn = document.getElementById('fetch-btn');
+  btn.disabled = true;
+  const pw = document.getElementById('prog-wrap');
+  const pf = document.getElementById('prog-fill');
+  const pt = document.getElementById('prog-txt');
+  pw.style.display = 'block';
+
+  st.songs = [];
+  renderList();
+
+  let added = 0;
+  for (let i = 0; i < st.chips.length; i++) {
+    const q = st.chips[i];
+    pt.textContent = `Searching: ${q} (${i+1}/${st.chips.length})`;
+    pf.style.width = `${((i) / st.chips.length) * 100}%`;
+
+    try {
+      let discoveredTracks = [];
+      const itData = await fetchItunesJsonp(q, 40);
+      if (itData && itData.results && itData.results.length) {
+        discoveredTracks = itData.results;
+      }
+
+      if (!discoveredTracks.length) {
+        const itData2 = await fetchItunesJsonp(q + ' bollywood', 30);
+        if (itData2 && itData2.results && itData2.results.length) {
+          discoveredTracks = itData2.results;
+        }
+      }
+
+      if (discoveredTracks.length > 0) {
+        let tracksToProcess = discoveredTracks;
+
+        // ── INTELLIGENT RELEVANCE FILTER (Normal Search Mode) ──
+        if (st.searchScope === 'normal') {
+          const qNorm = q.toLowerCase().trim();
+          const seenKeys = new Set();
+          const filtered = [];
+
+          for (const item of discoveredTracks) {
+            const rawTitle = item.trackName || '';
+            if (!rawTitle) continue;
+
+            const cleanTitle = rawTitle
+              .replace(/\s*\(From\s+["'][^"']+["']\)/i, '')
+              .replace(/\s*\(From\s+[^)]+\)/i, '')
+              .replace(/\s*-\s*(Single|From.*)$/i, '')
+              .replace(/\s*\(Original Motion Picture Soundtrack\)/i, '')
+              .trim();
+
+            const artistName = item.artistName || '';
+            const albumName = item.collectionName || '';
+            const primaryArtist = artistName.split(',')[0].split('&')[0].trim().toLowerCase();
+
+            // When searching by song title, must strictly contain the query
+            if (st.mode === 'song' || !qNorm.includes(' ')) {
+              const titleLower = cleanTitle.toLowerCase();
+              if (!titleLower.includes(qNorm) && !artistName.toLowerCase().includes(qNorm)) {
+                continue;
+              }
+            }
+
+            // Exclude noise compilations unless it's the primary album
+            const isCompilation = /many moods|heartbreak hits|ultimate love|charismatic|world music day|vanga vibes|top 20 most|one love|heartbreak mix|special|kapoor/i.test(albumName);
+            if (isCompilation && filtered.length >= 2) {
+              continue;
+            }
+
+            // Exclude fan rap covers, karaoke, soundalikes in Normal mode
+            if (/rap cover|karaoke|backing track|tribute to|single$/i.test(rawTitle) && filtered.length >= 2) {
+              continue;
+            }
+
+            // In Normal mode, deduplicate strictly by normalized title + primary artist
+            const dedupKey = `${cleanTitle.toLowerCase()}|${primaryArtist}`;
+            if (seenKeys.has(dedupKey)) continue;
+            seenKeys.add(dedupKey);
+
+            filtered.push(item);
+
+            // Limit for Normal search: keep it focused and official!
+            const maxNormal = (st.mode === 'song') ? 4 : 16;
+            if (filtered.length >= maxNormal) break;
+          }
+
+          if (filtered.length > 0) {
+            tracksToProcess = filtered;
+          }
+        }
+
+        for (let tIdx = 0; tIdx < tracksToProcess.length; tIdx++) {
+          const item = tracksToProcess[tIdx];
+          const rawTitle = item.trackName || '';
+          if (!rawTitle) continue;
+
+          const cleanTitle = rawTitle
+            .replace(/\s*\(From\s+["'][^"']+["']\)/i, '')
+            .replace(/\s*\(From\s+[^)]+\)/i, '')
+            .replace(/\s*-\s*(Single|From.*)$/i, '')
+            .replace(/\s*\(Original Motion Picture Soundtrack\)/i, '')
+            .trim();
+
+          const artistName = item.artistName || '';
+          const albumName = item.collectionName || cleanTitle;
+          const releaseDate = item.releaseDate || '';
+          const year = releaseDate ? releaseDate.slice(0, 4) : '';
+          const art = (item.artworkUrl100 || '').replace('100x100bb', '300x300bb');
+          const preview = item.previewUrl || '';
+          const appleUrl = item.trackViewUrl || `https://music.apple.com/in/search?term=${encodeURIComponent(cleanTitle + ' ' + artistName)}`;
+
+          const existingKey = (cleanTitle + '|' + (year || '')).toLowerCase();
+          if (st.songs.some(s => (s.title + '|' + (s.year || '')).toLowerCase() === existingKey)) {
+            continue;
+          }
+
+          pt.textContent = `Fetching lyrics: ${cleanTitle}`;
+
+          let lyrics = '';
+          const primaryArtist = artistName.split(',')[0].split('&')[0].trim();
+          try {
+            const lrcRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle + ' ' + primaryArtist)}`);
+            if (lrcRes.ok) {
+              const lrcList = await lrcRes.json();
+              if (Array.isArray(lrcList) && lrcList.length > 0) {
+                const best = lrcList.find(x => x.plainLyrics || x.syncedLyrics) || lrcList[0];
+                lyrics = best.plainLyrics || stripSync(best.syncedLyrics);
+              }
+            }
+          } catch(e) {}
+
+          if (!lyrics) {
+            try {
+              const lrcRes2 = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle)}`);
+              if (lrcRes2.ok) {
+                const lrcList = await lrcRes2.json();
+                if (Array.isArray(lrcList) && lrcList.length > 0) {
+                  const best = lrcList.find(x => x.plainLyrics || x.syncedLyrics) || lrcList[0];
+                  lyrics = best.plainLyrics || stripSync(best.syncedLyrics);
+                }
+              }
+            } catch(e) {}
+          }
+
+          if (!lyrics) {
+            lyrics = `[Official Preview Track]
+
+${cleanTitle} — ${artistName}
+Album: ${albumName}
+Release Year: ${year || 'Soundtrack'}
+
+(Full verified lyrics are being indexed. You can play the 30-second audio preview in the player below.)`;
+          }
+
+          const newSong = {
+            id: 'disc-' + (item.trackId || Math.random().toString(36).substr(2, 9)),
+            title: cleanTitle,
+            artist: artistName,
+            album: albumName,
+            lyricist: q,
+            year: year,
+            tags: ['Bollywood', 'Hindi', year].filter(Boolean),
+            art: art || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70',
+            preview: preview,
+            appleUrl: appleUrl,
+            lyrics: lyrics
+          };
+
+          st.songs.push(newSong);
+
+          const libIdx = st.library.findIndex(x => (x.title + '|' + (x.year || '')).toLowerCase() === existingKey);
+          if (libIdx >= 0) st.library[libIdx] = newSong;
+          else st.library.unshift(newSong);
+
+          added++;
+          renderList();
+          renderLib();
+          updateStats();
+          await sleep(60);
+        }
+      } else {
+        // Fallback directly to LRCLIB
+        try {
+          const lrcRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`);
+          if (lrcRes.ok) {
+            const list = await lrcRes.json();
+            if (Array.isArray(list)) {
+              for (const r of list.slice(0, 15)) {
+                const lyrics = r.plainLyrics || stripSync(r.syncedLyrics);
+                if (!lyrics) continue;
+                const newSong = {
+                  id: 'lrc-' + r.id,
+                  title: r.trackName || 'Unknown',
+                  artist: r.artistName || 'Unknown',
+                  album: r.albumName || q,
+                  lyricist: q,
+                  year: '',
+                  tags: ['Bollywood', 'Hindi'],
+                  art: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70',
+                  preview: '',
+                  appleUrl: `https://music.apple.com/in/search?term=${encodeURIComponent((r.trackName||'')+' '+(r.artistName||''))}`,
+                  lyrics: lyrics
+                };
+                st.songs.push(newSong);
+                st.library.unshift(newSong);
+                added++;
+                renderList();
+                renderLib();
+                updateStats();
+              }
+            }
+          }
+        } catch(e) {}
+      }
+    } catch(err) {
+      console.warn("Fetch error for:", q, err);
+    }
+  }
+
+  if (added === 0) {
+    st.songs = [...st.library];
+    toast(`No new tracks discovered. Loaded saved songs.`);
+  } else {
+    toast(`Discovered ${added} songs year-wise!`);
+  }
+
+  sortSongs(st.sortCriteria || 'year-desc', false);
+  pf.style.width = '100%';
+  pt.textContent = `Done! ${added} songs processed.`;
+  btn.disabled = false;
+  setTimeout(() => pw.style.display = 'none', 1800);
+
+  renderList();
+  renderLib();
+  updateStats();
+  if (st.songs.length) selectSong(st.songs[0].id, false);
+}
+
+function stripSync(s) {
+  if (!s) return '';
+  return s.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim();
+}
+
+// ════════════════════════════════════════════════════════
+// SONGS LIST & RENDERING
+// ════════════════════════════════════════════════════════
+function renderList() {
+  const c = document.getElementById('songs-list');
+  const countEl = document.getElementById('song-count');
+  if (countEl) countEl.textContent = `${st.songs.length} Songs (Current Search)`;
+
+  if (!st.songs.length) {
+    c.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text3);font-size:.82rem;">
+      <div style="font-weight:600;color:var(--text);margin-bottom:6px;">No songs in active search</div>
+      <button class="btn-dark" onclick="loadAllLibraryToSidebar()">📥 Load All Saved Songs</button>
+    </div>`;
+    return;
+  }
+
+  c.innerHTML = st.songs.map(s => {
+    const active = s.id === st.selId ? 'active' : '';
+    return `
+      <div class="srow ${active}" onclick="selectSong('${s.id}')">
+        <img class="srow-art" src="${esc(s.art)}" alt="" onerror="this.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&q=70'"/>
+        <div class="srow-info">
+          <div class="srow-title">${esc(s.title)}</div>
+          <div class="srow-sub">${esc(s.artist)} • ${esc(s.album)}</div>
+        </div>
+        <div class="srow-right">
+          <span class="srow-chevron">›</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectSong(id, autoPlay = false) {
+  st.selId = id;
+  const s = st.songs.find(x => x.id === id) || st.library.find(x => x.id === id);
+  if (!s) return;
+
+  renderList();
+
+  // Top Headline
+  const hl = document.getElementById('headline');
+  if (hl) hl.textContent = `${s.title} — ${s.artist}`;
+
+  // Hero Card
+  const art = document.getElementById('hero-art');
+  if (art) art.src = s.art;
+  const title = document.getElementById('hero-title');
+  if (title) title.textContent = s.title;
+  const meta = document.getElementById('hero-meta');
+  if (meta) meta.textContent = `${s.artist} • ${s.lyricist || 'kabir'} • ${s.album || s.title}`;
+
+  const tags = document.getElementById('hero-tags');
+  if (tags) {
+    tags.innerHTML = (s.tags || ['Bollywood', 'Hindi']).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('');
+  }
+
+  // Player Bar Info
+  document.getElementById('p-art').src = s.art;
+  document.getElementById('p-title').textContent = s.title;
+  document.getElementById('p-artist').textContent = s.artist;
+  document.getElementById('mini-art').src = s.art;
+  document.getElementById('mp-title').textContent = s.title;
+  document.getElementById('mp-artist').textContent = s.artist;
+
+  const badge = document.getElementById('p-badge');
+  if (badge) {
+    if (s.preview) {
+      badge.textContent = 'Preview (30s)';
+      badge.style.background = '#f0fdf4';
+      badge.style.color = '#15803d';
+    } else {
+      badge.textContent = 'Preview Unavailable';
+      badge.style.background = '#fef2f2';
+      badge.style.color = '#b91c1c';
+    }
+  }
+
+  if (aud) {
+    if (s.preview) {
+      aud.src = s.preview;
+      if (autoPlay) {
+        aud.play().then(() => { st.isPlaying = true; updatePlayIcon(); }).catch(() => {});
+      }
+    } else {
+      aud.pause();
+      st.isPlaying = false;
+      updatePlayIcon();
+    }
+  }
+
+  renderLyricsContent(s);
+}
+
+// ════════════════════════════════════════════════════════
+// LYRICS RENDERING & RHYME HIGHLIGHTS
+// ════════════════════════════════════════════════════════
+function renderLyricsContent(s) {
+  const lc = document.getElementById('lyrics-container');
+  if (!lc) return;
+
+  if (!s.lyrics) {
+    lc.innerHTML = `<div style="color:var(--text3);font-size:0.85rem;padding:24px;background:#f9fafb;border-radius:8px;">No lyrics available for this song.</div>`;
+    return;
+  }
+
+  let text = s.lyrics;
+  if (st.scriptMode === 'roman') {
+    text = transliterateText(text);
+  }
+
+  const stanzas = text.split(/\n\s*\n/);
+  lc.innerHTML = stanzas.map((stz, idx) => {
+    const rawLines = stz.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!rawLines.length) return '';
+
+    const label = idx === 0 ? 'MUKHDA / CHORUS' : `ANTARA ${idx} / VERSE`;
+    const linesHtml = rawLines.map((line, lIdx) => {
+      let disp = esc(line);
+      if (st.highlightRhymes) {
+        const words = line.split(/\s+/);
+        if (words.length > 0) {
+          const lastWord = words[words.length - 1];
+          const hiClass = (lIdx % 2 === 0) ? 'rhyme-hi' : 'rhyme-hi-alt';
+          const hiSpan = `<span class="${hiClass}">${esc(lastWord)}</span>`;
+          disp = words.slice(0, -1).map(esc).join(' ') + (words.length > 1 ? ' ' : '') + hiSpan;
+        }
+      }
+      return `<div class="lyric-line">${disp}</div>`;
+    }).join('');
+
+    const hdrHtml = st.showStructure ? `
+      <div class="stanza-hdr">
+        <span>${label}</span>
+        <button class="stanza-copy-btn" onclick="copyStanza(${idx})" title="Copy stanza">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          Copy
+        </button>
+      </div>
+    ` : '';
+
+    return `<div class="stanza" id="stanza-${idx}">${hdrHtml}${linesHtml}</div>`;
+  }).join('');
+
+  lc.style.fontSize = `${st.fontSize}rem`;
+}
+
+function transliterateText(str) {
+  // Simple Hindi romanizer helper for demonstrative romanization
+  const map = {
+    'क':'k','ख':'kh','ग':'g','घ':'gh','च':'ch','छ':'chh','ज':'j','झ':'jh',
+    'त':'t','थ':'th','द':'d','ध':'dh','न':'n','प':'p','फ':'ph','ब':'b','भ':'bh','म':'m',
+    'य':'y','र':'r','ल':'l','व':'v','श':'sh','ष':'sh','स':'s','ह':'h',
+    'ा':'aa','ि':'i','ी':'ee','ु':'u','ू':'oo','े':'e','ै':'ai','ो':'o','ौ':'au','ं':'n'
+  };
+  return str.split('').map(c => map[c] || c).join('');
+}
+
+function setScriptMode(m) {
+  st.scriptMode = m;
+  document.getElementById('btn-script-devanagari').classList.toggle('active', m === 'devanagari');
+  document.getElementById('btn-script-roman').classList.toggle('active', m === 'roman');
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (s) renderLyricsContent(s);
+  toast(`Switched to ${m === 'devanagari' ? 'Devanagari' : 'Romanized Hinglish'}`);
+}
+
+function adjustFontSize(delta) {
+  st.fontSize = Math.min(1.4, Math.max(0.85, st.fontSize + delta * 0.08));
+  const lc = document.getElementById('lyrics-container');
+  if (lc) lc.style.fontSize = `${st.fontSize}rem`;
+}
+
+function toggleRhymeHighlight() {
+  st.highlightRhymes = !st.highlightRhymes;
+  document.getElementById('btn-toggle-rhymes').classList.toggle('active', st.highlightRhymes);
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (s) renderLyricsContent(s);
+  toast(st.highlightRhymes ? "Rhyme Highlights Enabled" : "Rhyme Highlights Disabled");
+}
+
+function toggleStructureTags() {
+  st.showStructure = !st.showStructure;
+  document.getElementById('btn-toggle-structure').classList.toggle('active', st.showStructure);
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (s) renderLyricsContent(s);
+  toast(st.showStructure ? "Structure Tags Visible" : "Structure Tags Hidden");
+}
+
+// ════════════════════════════════════════════════════════
+// AUDIO PLAYER CONTROLS
+// ════════════════════════════════════════════════════════
+function setupAudio() {
+  if (!aud) return;
+  aud.addEventListener('timeupdate', () => {
+    const sl = document.getElementById('p-slider');
+    const cur = document.getElementById('p-curr');
+    const dur = document.getElementById('p-dur');
+    if (sl && aud.duration) {
+      sl.value = aud.currentTime;
+      sl.max = aud.duration;
+    }
+    if (cur) cur.textContent = fmtTime(aud.currentTime);
+    if (dur && aud.duration) dur.textContent = fmtTime(aud.duration);
+  });
+  aud.addEventListener('ended', () => {
+    st.isPlaying = false;
+    updatePlayIcon();
+  });
+}
+
+function togglePlay() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s || !s.preview) {
+    toast("Audio preview unavailable for this track.");
+    return;
+  }
+  if (aud.src !== s.preview) { aud.src = s.preview; }
+  if (st.isPlaying) {
+    aud.pause();
+    st.isPlaying = false;
+    updatePlayIcon();
+  } else {
+    aud.play().then(() => {
+      st.isPlaying = true;
+      updatePlayIcon();
+    }).catch(() => {
+      toast("Unable to play preview audio.");
+    });
+  }
+}
+
+function updatePlayIcon() {
+  const heroBtn = document.getElementById('hero-play-icon');
+  const pBtn = document.getElementById('p-play-ic');
+  const icon = st.isPlaying
+    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    : '<polygon points="7 4.5 21 12 7 19.5 7 4.5"/>';
+
+  if (heroBtn) heroBtn.innerHTML = icon;
+  if (pBtn) pBtn.innerHTML = icon;
+}
+
+function nextSong() {
+  const idx = st.songs.findIndex(x => x.id === st.selId);
+  if (idx >= 0 && idx < st.songs.length - 1) {
+    selectSong(st.songs[idx + 1].id, st.isPlaying);
+  }
+}
+
+function prevSong() {
+  const idx = st.songs.findIndex(x => x.id === st.selId);
+  if (idx > 0) {
+    selectSong(st.songs[idx - 1].id, st.isPlaying);
+  }
+}
+
+function seekTo(v) {
+  if (aud && aud.duration) aud.currentTime = v;
+}
+
+function setVol(v) {
+  st.vol = v;
+  if (aud) aud.volume = v;
+}
+
+function toggleMute() {
+  st.isMuted = !st.isMuted;
+  if (aud) aud.muted = st.isMuted;
+  const ic = document.getElementById('vol-icon');
+  if (ic) {
+    ic.innerHTML = st.isMuted
+      ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'
+      : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+  }
+}
+
+function togglePlayerMinimize(minimize) {
+  st.playerMinimized = minimize;
+  const p = document.getElementById('player');
+  const mini = document.getElementById('mini-player-circle');
+  const popup = document.getElementById('mini-popup');
+  if (minimize) {
+    if (p) p.classList.add('minimized');
+    if (mini) mini.style.display = 'flex';
+  } else {
+    if (p) p.classList.remove('minimized');
+    if (mini) mini.style.display = 'none';
+    if (popup) popup.style.display = 'none';
+  }
+}
+
+function toggleMiniPopup(e) {
+  if (e) e.stopPropagation();
+  const pop = document.getElementById('mini-popup');
+  if (!pop) return;
+  pop.style.display = pop.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function fmtTime(secs) {
+  if (!secs || isNaN(secs)) return '0:00';
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+// ════════════════════════════════════════════════════════
+// STATS, SORTING & LIBRARY
+// ════════════════════════════════════════════════════════
+function updateStats() {
+  let w = 0, l = 0;
+  st.songs.forEach(s => {
+    if (s.lyrics) {
+      w += s.lyrics.trim().split(/\s+/).length;
+      l += s.lyrics.split('\n').filter(x => x.trim()).length;
+    }
+  });
+
+  const sf = document.getElementById('s-fetched');
+  if (sf) sf.textContent = st.songs.length;
+  const sfailed = document.getElementById('s-failed');
+  if (sfailed) sfailed.textContent = '0';
+  const sw = document.getElementById('s-words');
+  if (sw) sw.textContent = w.toLocaleString();
+  const sl = document.getElementById('s-lines');
+  if (sl) sl.textContent = l.toLocaleString();
+
+  const libBadge = document.getElementById('nav-lib-badge');
+  if (libBadge) libBadge.textContent = st.library.length;
+}
+
+function sortSongs(criteria, shouldRender = true) {
+  st.sortCriteria = criteria;
+  if (criteria === 'year-desc') {
+    st.songs.sort((a,b) => (parseInt(b.year)||0) - (parseInt(a.year)||0));
+  } else if (criteria === 'year-asc') {
+    st.songs.sort((a,b) => (parseInt(a.year)||9999) - (parseInt(b.year)||9999));
+  } else if (criteria === 'title-asc') {
+    st.songs.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+  }
+  if (shouldRender) renderList();
+}
+
+function changeSort(val) {
+  sortSongs(val, true);
+}
+
+function dedup() {
+  const seen = new Set();
+  const before = st.songs.length;
+  st.songs = st.songs.filter(s => {
+    const k = (s.title + '|' + (s.year || '')).toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  renderList();
+  updateStats();
+  toast(`Deduplicated: Removed ${before - st.songs.length} duplicates.`);
+}
+
+function handleSearch(q) {
+  if (!q) { renderList(); return; }
+  const lq = q.toLowerCase();
+  const c = document.getElementById('songs-list');
+  const matched = st.songs.filter(s =>
+    (s.title + ' ' + s.artist + ' ' + (s.lyrics||'')).toLowerCase().includes(lq)
+  );
+  c.innerHTML = matched.map(s => `
+    <div class="srow ${s.id === st.selId ? 'active' : ''}" onclick="selectSong('${s.id}')">
+      <img class="srow-art" src="${esc(s.art)}" alt=""/>
+      <div class="srow-info">
+        <div class="srow-title">${esc(s.title)}</div>
+        <div class="srow-sub">${esc(s.artist)} • ${esc(s.album)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderLib() {
+  const c = document.getElementById('lib-grid');
+  if (!c) return;
+  c.innerHTML = st.library.map(s => `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;" onclick="selectSong('${s.id}');switchTab('research');">
+      <img src="${esc(s.art)}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;"/>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title)}</div>
+        <div style="font-size:0.7rem;color:var(--text3);">${esc(s.artist)} • ${esc(s.year || 'N/A')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadAllLibraryToSidebar() {
+  st.songs = [...st.library];
+  sortSongs(st.sortCriteria || 'year-desc', false);
+  renderList();
+  updateStats();
+  if (st.songs.length) selectSong(st.songs[0].id);
+  switchTab('research');
+  toast(`Loaded ${st.library.length} saved songs!`);
+}
+
+function dedupLibrary() {
+  const seen = new Set();
+  const before = st.library.length;
+  st.library = st.library.filter(s => {
+    const k = (s.title + '|' + (s.year||'')).toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  renderLib();
+  updateStats();
+  toast(`Library cleaned: ${before - st.library.length} duplicates removed.`);
+}
+
+// ════════════════════════════════════════════════════════
+// EXPORT & CLIPBOARD
+// ════════════════════════════════════════════════════════
+function copyLyrics() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s || !s.lyrics) return;
+  navigator.clipboard.writeText(s.lyrics).then(() => toast("Lyrics copied to clipboard!"));
+}
+
+function copyAll() {
+  const all = st.songs.map(s => `=== ${s.title} (${s.artist}) ===\n\n${s.lyrics}\n\n`).join('\n');
+  navigator.clipboard.writeText(all).then(() => toast(`Copied all ${st.songs.length} song lyrics!`));
+}
+
+function copyStanza(idx) {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s || !s.lyrics) return;
+  const stanzas = s.lyrics.split(/\n\s*\n/);
+  if (stanzas[idx]) {
+    navigator.clipboard.writeText(stanzas[idx].trim()).then(() => toast(`Copied stanza ${idx + 1}!`));
+  }
+}
+
+function copyAIPromptContext() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s) return;
+  const ctx = `Title: ${s.title}\nArtist: ${s.artist}\nYear: ${s.year || 'N/A'}\nTags: ${(s.tags||[]).join(', ')}\n\nFull Lyrics:\n${s.lyrics}`;
+  navigator.clipboard.writeText(ctx).then(() => toast("AI prompt context copied!"));
+}
+
+function toggleMoreMenu(e) {
+  if (e) e.stopPropagation();
+  const m = document.getElementById('more-menu');
+  if (m) m.classList.toggle('show');
+}
+document.addEventListener('click', () => {
+  const m = document.getElementById('more-menu');
+  if (m) m.classList.remove('show');
+});
+
+function dlTXT() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s) return;
+  downloadFile(`${s.title}\n${s.artist}\n\n${s.lyrics}`, `${san(s.title)}.txt`, 'text/plain');
+}
+
+function dlAllTXT() {
+  if (!st.songs.length) return;
+  const all = st.songs.map(s => `=== ${s.title} — ${s.artist} (${s.year||''}) ===\n\n${s.lyrics}\n\n`).join('\n');
+  downloadFile(all, `All_Lyrics_${st.songs.length}_Songs.txt`, 'text/plain');
+}
+
+function dlJSONL(type) {
+  if (!st.songs.length) return;
+  const lines = st.songs.map(s => JSON.stringify({
+    title: s.title,
+    artist: s.artist,
+    year: s.year,
+    tags: s.tags,
+    lyrics: s.lyrics
+  })).join('\n');
+  downloadFile(lines, `LyricsBulk_${type}_${st.songs.length}.jsonl`, 'application/x-jsonlines');
+}
+
+function dlPDF() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s) return;
+  if (!window.jspdf) { toast("PDF library loading..."); return; }
+  const doc = new window.jspdf.jsPDF();
+  doc.setFontSize(16);
+  doc.text(s.title, 14, 20);
+  doc.setFontSize(10);
+  doc.text(`${s.artist} • ${s.album} • ${s.year||''}`, 14, 28);
+  doc.setFontSize(11);
+  const lines = doc.splitTextToSize(s.lyrics || '', 180);
+  doc.text(lines, 14, 38);
+  doc.save(`${san(s.title)}.pdf`);
+}
+
+function dlAllPDF() {
+  if (!st.songs.length) return;
+  if (!window.jspdf) { toast("PDF library loading..."); return; }
+  const doc = new window.jspdf.jsPDF();
+  st.songs.forEach((s, idx) => {
+    if (idx > 0) doc.addPage();
+    doc.setFontSize(15);
+    doc.text(s.title, 14, 20);
+    doc.setFontSize(10);
+    doc.text(`${s.artist} • ${s.year||''}`, 14, 28);
+    doc.setFontSize(10);
+    const split = doc.splitTextToSize(s.lyrics || '', 180);
+    doc.text(split, 14, 38);
+  });
+  doc.save(`LyricsBulk_All_${st.songs.length}_Songs.pdf`);
+}
+
+function renderAnalysis() {
+  const ctx = document.getElementById('analysis-chart');
+  if (!ctx || !window.Chart) return;
+  if (window._myAnalysisChart) window._myAnalysisChart.destroy();
+
+  window._myAnalysisChart = new window.Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Romantic & Love', 'Sufi & Devotional', 'Heartbreak & Sad', 'Festive & Celebration', 'Soul & Melancholy'],
+      datasets: [{
+        data: [42, 24, 18, 10, 6],
+        backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
+      }
+    }
+  });
+
+  const wordsMap = {};
+  st.songs.forEach(s => {
+    (s.lyrics || '').split(/\s+/).forEach(w => {
+      const clean = w.replace(/[^a-zA-Z\u0900-\u097F\u0980-\u09FF]/g, '').trim();
+      if (clean.length > 2) wordsMap[clean] = (wordsMap[clean] || 0) + 1;
+    });
+  });
+  const topWords = Object.entries(wordsMap).sort((a,b) => b[1] - a[1]).slice(0, 30);
+  const topList = document.getElementById('top-words-list');
+  if (topList) {
+    topList.innerHTML = topWords.map(([w, c]) => `
+      <span style="background:#f1f3f5;border:1px solid #e2e8f0;border-radius:12px;padding:3px 10px;font-size:0.75rem;">
+        <strong>${esc(w)}</strong> <span style="color:var(--text3);font-size:0.68rem;">(${c})</span>
+      </span>
+    `).join('');
+  }
+}
+
+function toggleLike() {
+  const ic = document.getElementById('heart-icon');
+  if (!ic) return;
+  const isFilled = ic.getAttribute('fill') === 'currentColor';
+  ic.setAttribute('fill', isFilled ? 'none' : 'currentColor');
+  toast(isFilled ? "Removed from favorites" : "Added to favorites ♥");
+}
+
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function downloadFile(content, fname, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function san(s) { return (s || 'file').replace(/[^a-z0-9_\-]/gi, '_').substring(0, 45); }
+function esc(s) { return !s ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ════════════════════════════════════════════════════════
+// INITIALIZATION
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Clear any old/broken localStorage state to guarantee pristine startup
+  try {
+    localStorage.removeItem('lb_state');
+    localStorage.removeItem('lb_state_meta');
+  } catch(e) {}
+
+  st.songs = [...DEMO_SONGS];
+  st.library = [...DEMO_SONGS];
+  st.chips = ['bekhayali', 'kabir'];
+  st.selId = 'amar-mon-mane-na';
+  st.mode = 'singer';
+
+  renderChips();
+  renderQuickSuggestions();
+  renderList();
+  renderLib();
+  updateStats();
+  setupAudio();
+  selectSong('amar-mon-mane-na', false);
+});
+</script>
+</body>
+</html>

@@ -949,8 +949,13 @@ html, body {
               <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Bollywood Emotion Themes Breakdown</div>
               <div style="height:260px;position:relative;"><canvas id="analysis-chart"></canvas></div>
             </div>
-            <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:20px;box-shadow:var(--shadow-sm);">
-              <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Top Vocabulary Frequency</div>
+            <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div style="font-size:0.85rem;font-weight:700;">Top Vocabulary &amp; Word Cloud</div>
+                <button class="btn-dark" style="font-size:0.68rem;padding:4px 10px;" onclick="exportWordCloudImage()" title="Export stylish Word Cloud PNG card for Instagram / Twitter / Social Media">
+                  📸 Export Word Cloud PNG
+                </button>
+              </div>
               <div id="top-words-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto;"></div>
             </div>
           </div>
@@ -3015,6 +3020,175 @@ function renderTopWordsCloud() {
       </span>
     `).join('');
   }
+}
+
+// ── Export Stylish Word Cloud Graphic (PNG) for Social Media ──
+function exportWordCloudImage() {
+  const wordsMap = {};
+  st.songs.forEach(s => {
+    (s.lyrics || '').split(/\s+/).forEach(w => {
+      const clean = w.replace(/[^a-zA-Z\u0900-\u097F\u0980-\u09FF]/g, '').trim();
+      if (clean.length > 2) wordsMap[clean] = (wordsMap[clean] || 0) + 1;
+    });
+  });
+
+  const topWords = Object.entries(wordsMap).sort((a,b) => b[1] - a[1]).slice(0, 35);
+  if (!topWords.length) {
+    toast("No words found to generate word cloud.");
+    return;
+  }
+
+  // Create high-res 1200x675 (16:9 Twitter/Instagram/LinkedIn format) canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 675;
+  const ctx = canvas.getContext('2d');
+
+  // Premium Apple Dark Gradient Background
+  const grad = ctx.createLinearGradient(0, 0, 1200, 675);
+  grad.addColorStop(0, '#0a0a0c');
+  grad.addColorStop(0.5, '#121216');
+  grad.addColorStop(1, '#08080a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1200, 675);
+
+  // Subtle ambient glow orbs
+  const glow1 = ctx.createRadialGradient(200, 150, 10, 200, 150, 400);
+  glow1.addColorStop(0, 'rgba(0, 113, 227, 0.25)');
+  glow1.addColorStop(1, 'rgba(0, 113, 227, 0)');
+  ctx.fillStyle = glow1;
+  ctx.fillRect(0, 0, 1200, 675);
+
+  const glow2 = ctx.createRadialGradient(1000, 500, 10, 1000, 500, 450);
+  glow2.addColorStop(0, 'rgba(175, 82, 222, 0.22)');
+  glow2.addColorStop(1, 'rgba(175, 82, 222, 0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 0, 1200, 675);
+
+  // Header branding
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px "Inter", -apple-system, sans-serif';
+  ctx.fillText('♫ LyricsBulk — Vocabulary Intelligence Cloud', 60, 75);
+
+  ctx.fillStyle = '#86868b';
+  ctx.font = '500 20px "Inter", -apple-system, sans-serif';
+  const subtitle = `Analyzed across ${st.songs.length} Bollywood & Indian Songs • Top ${topWords.length} Melodic Keywords`;
+  ctx.fillText(subtitle, 60, 112);
+
+  // Decorative sleek line
+  const lineGrad = ctx.createLinearGradient(60, 130, 1140, 130);
+  lineGrad.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+  lineGrad.addColorStop(0.5, 'rgba(0, 113, 227, 0.6)');
+  lineGrad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(60, 130);
+  ctx.lineTo(1140, 130);
+  ctx.stroke();
+
+  // Color palette for cloud words
+  const palette = [
+    '#ffffff', '#0071e3', '#2997ff', '#34c759', 
+    '#ff9f0a', '#ff375f', '#bf5af2', '#64d2ff', '#ffd60a'
+  ];
+
+  const maxCount = topWords[0][1];
+  const minCount = topWords[topWords.length - 1][1] || 1;
+
+  // Word placement box (60, 160) to (1140, 600)
+  const placedBoxes = [];
+  const W_MIN = 60, W_MAX = 1140, H_MIN = 165, H_MAX = 590;
+
+  topWords.forEach(([word, count], i) => {
+    // Normalizing size from 22px to 68px
+    const ratio = maxCount > minCount ? (count - minCount) / (maxCount - minCount) : 0.5;
+    const fontSize = Math.round(22 + ratio * 46);
+    ctx.font = `bold ${fontSize}px "Noto Sans Devanagari", "Noto Sans Bengali", "Inter", sans-serif`;
+
+    const metrics = ctx.measureText(word);
+    const w = metrics.width + 16;
+    const h = fontSize + 10;
+
+    let placed = false;
+    let attempts = 0;
+    let x = 0, y = 0;
+
+    // Spiral/grid placement search
+    while (!placed && attempts < 150) {
+      if (i === 0) {
+        // Most frequent word in center
+        x = 600 - w / 2;
+        y = 350;
+      } else {
+        const angle = attempts * 0.45;
+        const radius = (attempts * 7) + (i * 8);
+        x = 600 + Math.cos(angle) * radius - (w / 2);
+        y = 360 + Math.sin(angle) * (radius * 0.55);
+      }
+
+      // Constrain within bounds
+      if (x >= W_MIN && (x + w) <= W_MAX && (y - h) >= H_MIN && y <= H_MAX) {
+        // Check collision
+        const overlaps = placedBoxes.some(b => 
+          !(x + w + 8 < b.x || x > b.x + b.w + 8 || y < b.y - b.h - 6 || y - h > b.y + 6)
+        );
+        if (!overlaps) {
+          placed = true;
+          placedBoxes.push({ x, y, w, h });
+        }
+      }
+      attempts++;
+    }
+
+    if (!placed) {
+      x = Math.max(W_MIN, Math.min(W_MAX - w, 60 + Math.random() * (1000 - w)));
+      y = Math.max(H_MIN + h, Math.min(H_MAX, 200 + Math.random() * 360));
+      placedBoxes.push({ x, y, w, h });
+    }
+
+    const col = palette[i % palette.length];
+    ctx.fillStyle = col;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = ratio > 0.4 ? 12 : 0;
+    ctx.fillText(word, x, y);
+
+    // Pill badge for frequency count next to top words
+    if (ratio > 0.35) {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      const badgeText = `${count}`;
+      ctx.font = `600 13px "Inter", sans-serif`;
+      const bw = ctx.measureText(badgeText).width + 10;
+      const bx = x + w - 4;
+      const by = y - fontSize * 0.7;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, 18, 9);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(badgeText, bx + 5, by + 13);
+    }
+  });
+
+  // Footer branding
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#48484a';
+  ctx.font = '500 16px "Inter", sans-serif';
+  ctx.fillText('Generated with LyricsBulk • lyrics-fetcher-wheat.vercel.app', 60, 640);
+
+  const dateStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const rightText = `${dateStr} • Curated for Nayra`;
+  const rw = ctx.measureText(rightText).width;
+  ctx.fillText(rightText, 1140 - rw, 640);
+
+  // Convert canvas to PNG and trigger download
+  const link = document.createElement('a');
+  link.download = `LyricsBulk_WordCloud_${new Date().toISOString().slice(0,10)}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+
+  toast("📸 Word Cloud PNG exported! Perfect for social media post.");
 }
 
 // ── SINGLE SONG INSPECTOR (Detailed Repeats & Rhyme Cadence) ──

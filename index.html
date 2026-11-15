@@ -489,13 +489,30 @@ html, body {
 
 /* Floating Mini Player Circle */
 .mini-player-circle {
-  position: fixed; bottom: 20px; right: 24px; width: 52px; height: 52px;
-  border-radius: 50%; background: #000; color: #fff; box-shadow: var(--shadow-lg);
+  position: fixed; bottom: 20px; right: 24px; width: 56px; height: 56px;
+  border-radius: 50%; background: #1c1c1e; color: #fff; box-shadow: var(--shadow-lg);
   display: none; align-items: center; justify-content: center; cursor: pointer;
-  z-index: 100; transition: transform 0.2s; overflow: hidden;
+  z-index: 100; transition: transform 0.2s; overflow: visible;
 }
-.mini-player-circle:hover { transform: scale(1.08); }
-.mini-player-circle img { width: 100%; height: 100%; object-fit: cover; }
+.mini-player-circle:hover { transform: scale(1.06); }
+.mini-player-circle .mini-art-wrap {
+  position: relative; width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.mini-player-circle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.mini-play-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.42);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; pointer-events: none;
+}
+.mini-play-btn {
+  position: absolute; bottom: -4px; right: -4px; width: 22px; height: 22px;
+  background: #fff; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 101; color: #000;
+  transition: transform 0.15s;
+}
+.mini-play-btn:hover { transform: scale(1.15); }
 
 /* Mini Player Popup Card */
 .mini-popup {
@@ -693,7 +710,13 @@ html, body {
   <div class="body-wrap">
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
-      <div class="sb-top">
+      <!-- Sidebar top section toggle -->
+      <div style="display:flex;justify-content:flex-end;padding:6px 12px 0 12px;">
+        <button class="icon-btn-sm" id="sb-top-toggle" onclick="toggleSbTop()" title="Collapse/Expand input panel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15" id="sb-top-chevron-ic"/></svg>
+        </button>
+      </div>
+      <div class="sb-top" id="sb-top-panel">
         <!-- 4 SEGMENTED BUTTONS -->
         <div class="seg-grid">
           <button class="segbtn active" id="seg-singer" onclick="switchMode('singer')">By Singer</button>
@@ -870,6 +893,11 @@ html, body {
               <button class="segbtn-sm" onclick="adjustFontSize(-1)">A−</button>
               <button class="segbtn-sm" onclick="adjustFontSize(1)">A+</button>
             </div>
+            <!-- All Possible Lyrics Variants Button -->
+            <button class="pill-toggle" id="btn-all-variants" onclick="fetchAllVariants()" title="Fetch all available script/language versions from API" style="background:#f2f2f7;color:#1d1d1f;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              All Possible
+            </button>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <button class="pill-toggle active" id="btn-toggle-rhymes" onclick="toggleRhymeHighlight()">
@@ -925,6 +953,22 @@ html, body {
               <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Top Vocabulary Frequency</div>
               <div id="top-words-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto;"></div>
             </div>
+          </div>
+
+          <!-- Library Songs with Individual Breakdown -->
+          <div style="margin-top:28px;max-width:960px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+              <div style="font-size:0.9rem;font-weight:800;color:#000;">Library Songs — Individual Breakdown</div>
+              <div style="font-size:0.72rem;color:var(--text-sub);">Tap "Breakdown" to analyze any song in detail</div>
+            </div>
+            <div id="an-lib-songs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- Multi-Artist Lyric Comparison -->
+          <div style="margin-top:28px;max-width:960px;">
+            <div style="font-size:0.9rem;font-weight:800;color:#000;margin-bottom:4px;">Multi-Artist / Writer Comparison</div>
+            <div style="font-size:0.72rem;color:var(--text-sub);margin-bottom:14px;">Compare lyric stats across multiple artists or writers side by side</div>
+            <div id="multi-compare-wrap" style="overflow-x:auto;padding-bottom:8px;"></div>
           </div>
         </div>
 
@@ -1045,8 +1089,17 @@ html, body {
   </footer>
 
   <!-- MINIMIZED CORNER CIRCLE -->
-  <div class="mini-player-circle" id="mini-player-circle" onclick="toggleMiniPopup(event)" title="Click to view player">
-    <img id="mini-art" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70" alt=""/>
+  <div class="mini-player-circle" id="mini-player-circle" title="Click to expand player">
+    <div class="mini-art-wrap" onclick="toggleMiniPopup(event)">
+      <img id="mini-art" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=70" alt=""/>
+      <div class="mini-play-overlay">
+        <svg id="mini-art-play-ic" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="7 4.5 21 12 7 19.5 7 4.5"/></svg>
+      </div>
+    </div>
+    <!-- Play/Pause badge button -->
+    <button class="mini-play-btn" onclick="event.stopPropagation();togglePlay();" title="Play / Pause">
+      <svg id="mini-badge-play-ic" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 4.5 21 12 7 19.5 7 4.5"/></svg>
+    </button>
   </div>
 
   <!-- MINI PLAYER POPUP CARD -->
@@ -1148,6 +1201,53 @@ html, body {
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
   <audio id="audio" preload="none"></audio>
+
+  <!-- ALL VARIANTS MODAL -->
+  <div class="modal-backdrop" id="variants-modal" onclick="closeVariantsModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:600px;">
+      <div class="modal-hdr">
+        <div style="font-size:1.05rem;font-weight:800;color:#000;">All Available Lyrics Versions</div>
+        <button class="icon-btn" onclick="closeVariantsModal()">✕</button>
+      </div>
+      <div id="variants-loading" style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.8rem;">
+        Fetching all available versions from LRCLib API…
+      </div>
+      <div id="variants-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- SONG BREAKDOWN MODAL -->
+  <div class="modal-backdrop" id="breakdown-modal" onclick="closeBreakdownModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:800px;">
+      <div class="modal-hdr">
+        <div>
+          <div style="font-size:1.05rem;font-weight:800;color:#000;" id="breakdown-title">Song Breakdown</div>
+          <div style="font-size:0.72rem;color:var(--text-sub);" id="breakdown-artist"></div>
+        </div>
+        <button class="icon-btn" onclick="closeBreakdownModal()">✕</button>
+      </div>
+      <!-- Breakdown content -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="breakdown-metrics"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px;">📊 Word Frequency</div>
+          <div style="height:200px;position:relative;"><canvas id="breakdown-words-chart"></canvas></div>
+        </div>
+        <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px;">🎵 Rhyme Pattern Distribution</div>
+          <div style="height:200px;position:relative;"><canvas id="breakdown-rhyme-chart"></canvas></div>
+        </div>
+      </div>
+      <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-top:16px;">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px;">🔁 Hooks &amp; Repeated Lines</div>
+        <div id="breakdown-hooks" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+      <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);margin-top:16px;">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:10px;">🔤 Stanza End-Word Rhyme Cadence</div>
+        <div id="breakdown-cadence" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1866,6 +1966,17 @@ window.addEventListener('keydown', (e) => {
     toggleSidebar();
   }
 });
+
+// ── Sidebar Top Panel Collapse (hides input section, keeps songs list) ──
+function toggleSbTop() {
+  const panel = document.getElementById('sb-top-panel');
+  const ic = document.getElementById('sb-top-chevron-ic');
+  if (!panel) return;
+  const isCollapsed = panel.style.display === 'none';
+  panel.style.display = isCollapsed ? '' : 'none';
+  if (ic) ic.setAttribute('points', isCollapsed ? '18 15 12 9 6 15' : '6 9 12 15 18 9');
+  toast(isCollapsed ? "Input panel expanded" : "Input panel minimized — songs list takes over");
+}
 
 // ════════════════════════════════════════════════════════
 // SEARCH SCOPE (Normal vs Wide)
@@ -2635,14 +2746,18 @@ function updatePlayIcon() {
   const pBtn = document.getElementById('p-play-ic');
   const artIcon = document.getElementById('art-play-icon');
   const artContainer = document.getElementById('hero-art-container');
+  const miniArtIc = document.getElementById('mini-art-play-ic');
+  const miniBadgeIc = document.getElementById('mini-badge-play-ic');
 
-  const icon = st.isPlaying
-    ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
-    : '<polygon points="7 4.5 21 12 7 19.5 7 4.5"/>';
+  const playPoly = '<polygon points="7 4.5 21 12 7 19.5 7 4.5"/>';
+  const pauseRects = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+  const icon = st.isPlaying ? pauseRects : playPoly;
 
   if (heroBtn) heroBtn.innerHTML = icon;
   if (pBtn) pBtn.innerHTML = icon;
   if (artIcon) artIcon.innerHTML = icon;
+  if (miniArtIc) miniArtIc.innerHTML = icon;
+  if (miniBadgeIc) miniBadgeIc.innerHTML = icon;
   if (artContainer) artContainer.classList.toggle('playing', st.isPlaying);
 }
 
@@ -2855,6 +2970,7 @@ function switchAnalysisSub(tab) {
 function renderAnalysis() {
   renderEmotionChart();
   renderTopWordsCloud();
+  renderAnalysisLibSongs();
 }
 
 function renderEmotionChart() {
@@ -3266,6 +3382,274 @@ function esc(s) { return !s ? '' : String(s).replace(/&/g, '&amp;').replace(/</g
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ════════════════════════════════════════════════════════
+// ALL POSSIBLE LYRICS VARIANTS (from LRCLib API)
+// ════════════════════════════════════════════════════════
+async function fetchAllVariants() {
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (!s) { toast("Select a song first"); return; }
+
+  const modal = document.getElementById('variants-modal');
+  const loading = document.getElementById('variants-loading');
+  const list = document.getElementById('variants-list');
+  if (!modal) return;
+
+  modal.classList.add('show');
+  loading.style.display = 'block';
+  list.innerHTML = '';
+
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(s.title + ' ' + s.artist)}`).then(r => r.ok ? r.json() : []).catch(()=>[]),
+      fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(s.title)}`).then(r => r.ok ? r.json() : []).catch(()=>[])
+    ]);
+
+    const all = [...(Array.isArray(r1)?r1:[]), ...(Array.isArray(r2)?r2:[])];
+    const seen = new Set();
+    const uniq = all.filter(x => { if(seen.has(x.id)) return false; seen.add(x.id); return true; });
+
+    loading.style.display = 'none';
+
+    if (!uniq.length) {
+      list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.8rem;">No alternate versions found in LRCLib for this song.</div>`;
+      return;
+    }
+
+    list.innerHTML = uniq.map((item, idx) => {
+      const hasLyrics = !!(item.plainLyrics || item.syncedLyrics);
+      const preview = (item.plainLyrics || stripSync(item.syncedLyrics) || '').split('\n').slice(0,3).join(' · ') || 'No lyrics preview';
+      const dur = item.duration ? Math.floor(item.duration/60)+':'+String(Math.round(item.duration%60)).padStart(2,'0') : '';
+      return `
+        <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:14px;box-shadow:var(--shadow-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:0.82rem;color:#000;">${esc(item.trackName || s.title)}</div>
+              <div style="font-size:0.7rem;color:var(--text-sub);margin-top:2px;">${esc(item.artistName || s.artist)}${item.albumName?' • '+esc(item.albumName):''}${dur?' • '+dur:''}</div>
+              <div style="font-size:0.7rem;color:#8e8e93;margin-top:6px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px;">${esc(preview)}</div>
+            </div>
+            ${hasLyrics
+              ? `<button class="btn-dark" onclick="applyVariantLyrics(${idx})" style="flex-shrink:0;">Apply ↗</button>`
+              : `<span style="font-size:0.7rem;color:var(--text-muted);padding:6px 10px;background:#f2f2f7;border-radius:8px;">No lyrics</span>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    window._variantResults = uniq;
+  } catch(err) {
+    loading.style.display = 'none';
+    list.innerHTML = `<div style="color:#ff3b30;padding:16px;font-size:0.8rem;">Failed to fetch: ${err.message}</div>`;
+  }
+}
+
+function applyVariantLyrics(idx) {
+  const item = window._variantResults && window._variantResults[idx];
+  if (!item) return;
+  const lyrics = item.plainLyrics || stripSync(item.syncedLyrics) || '';
+  const s = st.songs.find(x => x.id === st.selId) || st.library.find(x => x.id === st.selId);
+  if (s && lyrics) {
+    s.lyrics = lyrics;
+    renderLyricsContent(s);
+    closeVariantsModal();
+    toast(`Applied: ${item.trackName || s.title} variant lyrics`);
+  } else {
+    toast("No lyrics found in this variant.");
+  }
+}
+
+function closeVariantsModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const m = document.getElementById('variants-modal');
+  if (m) m.classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════════
+// ANALYSIS: LIBRARY LIST + PER-SONG BREAKDOWN MODAL
+// ════════════════════════════════════════════════════════
+function renderAnalysisLibSongs() {
+  const c = document.getElementById('an-lib-songs-list');
+  if (!c) return;
+  const all = st.library;
+  if (!all.length) {
+    c.innerHTML = `<div style="color:var(--text-muted);font-size:0.8rem;padding:16px;">No songs in library yet.</div>`;
+    return;
+  }
+  c.innerHTML = all.map(s => {
+    const words = (s.lyrics||'').split(/\s+/).filter(Boolean).length;
+    const lines = (s.lyrics||'').split('\n').filter(x=>x.trim()).length;
+    const artUrl = s.art || DEFAULT_FALLBACK_ART;
+    return `
+      <div style="background:#fbfbfd;border-radius:var(--radius-md);padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-sm);">
+        <img src="${esc(artUrl)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.src='${DEFAULT_FALLBACK_ART}'"/>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:0.8rem;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.title)}</div>
+          <div style="font-size:0.7rem;color:var(--text-sub);">${esc(s.artist)} • ${esc(s.year||'N/A')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <span style="font-size:0.68rem;color:var(--text-muted);">${words}w · ${lines}L</span>
+          ${s.lyrics
+            ? `<button class="btn-dark" style="padding:5px 12px;font-size:0.72rem;" onclick="openSongBreakdown('${s.id}')">Breakdown</button>`
+            : `<span style="font-size:0.7rem;color:var(--text-muted);">No lyrics</span>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openSongBreakdown(id) {
+  const s = st.library.find(x => x.id === id) || st.songs.find(x => x.id === id);
+  if (!s || !s.lyrics) { toast("No lyrics available for breakdown"); return; }
+
+  const modal = document.getElementById('breakdown-modal');
+  if (!modal) return;
+
+  document.getElementById('breakdown-title').textContent = s.title;
+  document.getElementById('breakdown-artist').textContent = `${s.singer||s.artist} • ${s.album||''} • ${s.year||''}`;
+
+  const rawLines = s.lyrics.split('\n').map(l=>l.trim()).filter(Boolean);
+  const words = s.lyrics.split(/\s+/).filter(Boolean);
+  const uniqueWords = new Set(words.map(w=>w.toLowerCase().replace(/[^\u0900-\u097F\u0980-\u09FFa-zA-Z]/g,'')).filter(Boolean));
+  const ttr = words.length ? Math.round((uniqueWords.size/words.length)*100) : 0;
+
+  const stanzas = s.lyrics.split(/\n\s*\n/);
+  let rhymingCount = 0;
+  stanzas.forEach(stz => {
+    const sLines = stz.split('\n').map(l=>l.trim()).filter(Boolean);
+    const ends = sLines.map(l => { const p=l.split(/\s+/); return p[p.length-1]||''; });
+    ends.forEach((w,i) => { if(ends.some((o,j)=>j!==i&&isPhoneticRhyme(w,o))) rhymingCount++; });
+  });
+  const rhymeDensity = rawLines.length ? Math.min(100,Math.round((rhymingCount/rawLines.length)*100)) : 0;
+
+  const metricsEl = document.getElementById('breakdown-metrics');
+  if (metricsEl) {
+    metricsEl.innerHTML = [
+      { lbl: 'Total Words', val: words.length },
+      { lbl: 'Total Lines', val: rawLines.length },
+      { lbl: 'Lexical Diversity', val: ttr+'%' },
+      { lbl: 'Rhyme Density', val: rhymeDensity+'%' }
+    ].map(m => `
+      <div style="background:#fbfbfd;padding:14px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm);">
+        <div style="font-size:0.65rem;font-weight:800;color:var(--text-sub);text-transform:uppercase;">${m.lbl}</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#000;">${m.val}</div>
+      </div>
+    `).join('');
+  }
+
+  // Word freq bar chart
+  const wordMap = {};
+  words.forEach(w => { const c=w.replace(/[^\u0900-\u097F\u0980-\u09FFa-zA-Z]/g,'').trim(); if(c.length>1) wordMap[c]=(wordMap[c]||0)+1; });
+  const topW = Object.entries(wordMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if (window._breakdownWordsChart) { try{window._breakdownWordsChart.destroy();}catch(e){} }
+  const wCtx = document.getElementById('breakdown-words-chart');
+  if (wCtx && window.Chart) {
+    window._breakdownWordsChart = new window.Chart(wCtx, {
+      type: 'bar',
+      data: { labels: topW.map(([w])=>w), datasets: [{ data: topW.map(([,c])=>c), backgroundColor: '#0071e3', borderRadius: 5, borderWidth: 0 }] },
+      options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}},y:{grid:{display:false}}} }
+    });
+  }
+
+  // Rhyme pattern pie
+  const aabb = Math.max(0, rhymeDensity - 15);
+  const abab = Math.max(0, rhymeDensity - 20);
+  const free = Math.max(0, 100 - aabb - abab);
+  if (window._breakdownRhymeChart) { try{window._breakdownRhymeChart.destroy();}catch(e){} }
+  const rCtx = document.getElementById('breakdown-rhyme-chart');
+  if (rCtx && window.Chart) {
+    window._breakdownRhymeChart = new window.Chart(rCtx, {
+      type: 'doughnut',
+      data: { labels:['AABB (Couplet)','ABAB (Alternating)','Free Verse'], datasets:[{ data:[aabb,abab,free], backgroundColor:['#0071e3','#34c759','#ff9500'], borderWidth:0 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}} }
+    });
+  }
+
+  // Hooks
+  const lineCounts = {};
+  rawLines.forEach(l => { lineCounts[l]=(lineCounts[l]||0)+1; });
+  const repeats = Object.entries(lineCounts).filter(([,c])=>c>1).sort((a,b)=>b[1]-a[1]);
+  const hooksEl = document.getElementById('breakdown-hooks');
+  if (hooksEl) {
+    hooksEl.innerHTML = repeats.length
+      ? repeats.map(([line,count]) => `
+          <div style="background:#fff;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm);">
+            <span style="font-weight:600;font-size:0.78rem;">${esc(line)}</span>
+            <span style="background:#e8f2fe;color:#0071e3;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;">×${count}</span>
+          </div>`).join('')
+      : `<div style="color:var(--text-muted);font-size:0.75rem;">No repeating hook lines found.</div>`;
+  }
+
+  // Cadence
+  const cadenceEl = document.getElementById('breakdown-cadence');
+  if (cadenceEl) {
+    cadenceEl.innerHTML = stanzas.map((stz,idx) => {
+      const sLines = stz.split('\n').map(l=>l.trim()).filter(Boolean);
+      const ends = sLines.map(l => { const p=l.split(/\s+/); return p[p.length-1]||''; });
+      const pills = ends.map(w => {
+        const isR = ends.some((o)=>o!==w&&isPhoneticRhyme(w,o));
+        return `<span style="background:${isR?'#dbeafe':'#f2f2f7'};color:${isR?'#1e40af':'#48484a'};padding:2px 9px;border-radius:6px;font-size:0.7rem;font-weight:700;">${esc(w)}</span>`;
+      }).join(' ');
+      return `<div style="background:#fff;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;box-shadow:var(--shadow-sm);"><span style="font-size:0.65rem;font-weight:800;color:#8e8e93;text-transform:uppercase;min-width:60px;">Stanza ${idx+1}</span>${pills}</div>`;
+    }).join('');
+  }
+
+  modal.classList.add('show');
+}
+
+function closeBreakdownModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const m = document.getElementById('breakdown-modal');
+  if (m) m.classList.remove('show');
+}
+
+// ── Multi-Artist Lyric Comparison (grouped by artist/singer) ──
+function renderMultiArtistCompare() {
+  const wrap = document.getElementById('multi-compare-wrap');
+  if (!wrap) return;
+
+  const artistMap = {};
+  st.library.forEach(s => {
+    const a = s.singer || s.artist || 'Unknown';
+    if (!artistMap[a]) artistMap[a] = [];
+    artistMap[a].push(s);
+  });
+
+  const artists = Object.entries(artistMap).slice(0, 8);
+  if (!artists.length) {
+    wrap.innerHTML = `<div style="color:var(--text-muted);font-size:0.8rem;">Fetch songs from multiple artists to compare.</div>`;
+    return;
+  }
+
+  const colsHtml = artists.map(([artist, songs]) => {
+    const totalWords = songs.reduce((acc,s)=>acc+(s.lyrics||'').split(/\s+/).filter(Boolean).length,0);
+    const totalLines = songs.reduce((acc,s)=>acc+(s.lyrics||'').split('\n').filter(x=>x.trim()).length,0);
+    const allWords = songs.flatMap(s=>(s.lyrics||'').split(/\s+/).filter(Boolean));
+    const wordMap = {};
+    allWords.forEach(w=>{const c=w.replace(/[^\u0900-\u097F\u0980-\u09FFa-zA-Z]/g,'').trim();if(c.length>1)wordMap[c]=(wordMap[c]||0)+1;});
+    const top3 = Object.entries(wordMap).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([w])=>w).join(', ');
+    const uniqueW = new Set(allWords.map(w=>w.toLowerCase().replace(/[^\u0900-\u097F\u0980-\u09FFa-zA-Z]/g,''))).size;
+    const diversity = allWords.length ? Math.round((uniqueW/allWords.length)*100) : 0;
+    const barW = Math.min(100, Math.round((totalWords/500)*100));
+
+    return `
+      <div style="min-width:200px;background:#fbfbfd;border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);">
+        <div style="font-size:0.85rem;font-weight:800;color:#000;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(artist)}">${esc(artist)}</div>
+        <div style="font-size:0.68rem;color:var(--text-sub);margin-bottom:12px;">${songs.length} song${songs.length>1?'s':''}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div><div style="font-size:0.6rem;font-weight:800;color:#8e8e93;text-transform:uppercase;">Total Words</div><div style="font-size:1.1rem;font-weight:800;">${totalWords.toLocaleString()}</div></div>
+          <div><div style="font-size:0.6rem;font-weight:800;color:#8e8e93;text-transform:uppercase;">Total Lines</div><div style="font-size:1.1rem;font-weight:800;">${totalLines}</div></div>
+          <div><div style="font-size:0.6rem;font-weight:800;color:#8e8e93;text-transform:uppercase;">Lexical Diversity</div><div style="font-size:1.1rem;font-weight:800;">${diversity}%</div></div>
+          <div><div style="font-size:0.6rem;font-weight:800;color:#8e8e93;text-transform:uppercase;">Top Words</div><div style="font-size:0.76rem;font-weight:600;color:#1d1d1f;">${esc(top3||'—')}</div></div>
+          <div style="background:#e5e5ea;border-radius:4px;height:6px;overflow:hidden;margin-top:4px;">
+            <div style="background:#0071e3;height:100%;border-radius:4px;width:${barW}%;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `<div style="display:flex;gap:12px;min-width:max-content;">${colsHtml}</div>`;
+}
+
+// ════════════════════════════════════════════════════════
 // INITIALIZATION
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
@@ -3282,6 +3666,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStats();
   setupAudio();
   selectSong('amar-mon-mane-na', false);
+
+  // Player minimized by default on load
+  togglePlayerMinimize(true);
 });
 </script>
 </body>
